@@ -1,5 +1,9 @@
 # ヘッドレスパチンコ
 
+[![CI](https://github.com/tatsuhitofuruta/pachinko-simulator/actions/workflows/ci.yml/badge.svg)](https://github.com/tatsuhitofuruta/pachinko-simulator/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/tatsuhitofuruta/pachinko-simulator/actions/workflows/codeql.yml/badge.svg)](https://github.com/tatsuhitofuruta/pachinko-simulator/actions/workflows/codeql.yml)
+[![OSSF Scorecard](https://github.com/tatsuhitofuruta/pachinko-simulator/actions/workflows/scorecard.yml/badge.svg)](https://github.com/tatsuhitofuruta/pachinko-simulator/actions/workflows/scorecard.yml)
+
 パチンコ機種の収支シミュレーション、ボーダー計算、確率分析ツール
 
 ## 🎮 Webシミュレーター
@@ -20,7 +24,7 @@
 ## インストール
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/pachinko-simulator.git
+git clone https://github.com/tatsuhitofuruta/pachinko-simulator.git
 cd pachinko-simulator
 pip install -r requirements.txt
 ```
@@ -84,6 +88,24 @@ python eva_simulator.py --mode single --sims 5 --no-detail
 | `--no-detail` | 当たり履歴を非表示 | - |
 
 ※ 当たり履歴は `--sims` が10以下の場合に自動表示されます
+
+## 開発・メンテナンス
+
+このリポジトリはGitHub ActionsでPython CLI、静的Webシミュレーター、依存関係、セキュリティスキャンを継続チェックします。
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python -m pip install ruff
+
+ruff check .
+python -m compileall eva_simulator.py tests scripts
+python -m unittest discover -s tests -v
+python scripts/validate_static_site.py
+```
+
+機種スペックを変更する場合は、確率・出玉振り分け・モード名の参照元をPRに記載してください。
 
 ## スペック情報
 

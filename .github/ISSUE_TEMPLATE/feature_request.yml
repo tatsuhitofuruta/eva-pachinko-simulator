@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest a machine, simulation mode, or maintainer workflow improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What should improve?
+      description: Describe the user need or maintenance problem.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Include expected UI/CLI behavior where possible.
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Machine specs, docs, screenshots, or similar tools.
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Affected area
+      options:
+        - label: Web simulator
+        - label: Python CLI
+        - label: Documentation
+        - label: CI / maintenance workflow

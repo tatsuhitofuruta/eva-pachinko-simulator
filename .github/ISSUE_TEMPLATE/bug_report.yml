@@ -1,0 +1,54 @@
+name: Bug report
+description: Report a simulator bug or incorrect behavior.
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the simulator. Please include enough detail for someone else to reproduce the issue.
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Release version, commit SHA, or GitHub Pages date if known.
+      placeholder: v1.7.0 / bc84d32 / unknown
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      options:
+        - Web simulator
+        - Python CLI
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Select ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Screenshots, browser/OS, command output, or machine spec references.
