@@ -1037,7 +1037,7 @@
                 </div>
                 <div class="final-stat">
                     <div class="final-stat-value" id="finalHits">0</div>
-                    <div class="final-stat-label">総当たり</div>
+                    <div class="final-stat-label">初当り</div>
                 </div>
                 <div class="final-stat">
                     <div class="final-stat-value" id="finalBalls">0</div>
@@ -1118,7 +1118,7 @@
                 chargePayout: 0,
                 chargeStRate: 0,
                 isLT: true,              // 継続率システム（内部フラグ）
-                ltChallengeRate: 0.50,   // 魔戒チャンス突入率50%
+                ltChallengeRate: 0,      // 突入率50%はヘソ振り分けで表現済み
                 ltFirstPayout: 0,        // 追加出玉なし
                 ltEndPayout: 1750,       // 転落時も15R
                 stContinueRate: 0.82     // 魔戒チャンス継続率82%
@@ -1171,8 +1171,8 @@
                 chargeProb: 1 / 399.9,     // 喰種チャージ確率
                 chargePayout: netPayout(300), // 300個払い出し → 純増280発
                 chargeStRate: 0,           // チャージからRUSH突入なし
-                isLT: true,
-                ltChallengeRate: 0.51,     // HYPER喰種RUSH突入率51%
+                isLT: false,               // ST130回転を1回転ずつ判定する
+                ltChallengeRate: 0,        // 突入率51%はヘソ振り分けで表現済み
                 ltFirstPayout: 0,          // RUSH突入時追加出玉なし
                 ltEndPayout: 0,            // RUSH転落時追加出玉なし
                 stContinueRate: 0.75       // HYPER喰種RUSH継続率75%
@@ -1405,10 +1405,10 @@
             stats.invest += invest;
             stats.payout += payout;
             saveCumulativeStats(stats);
-            updateCumulativeDisplay();
 
             // セッション履歴にも追加
             addSessionToHistory(invest, payout);
+            updateCumulativeDisplay();
             // 最新セッションの月にカレンダーを移動
             moveToLatestSession();
             renderCalendar();
@@ -1726,6 +1726,14 @@
             return spec.denchuPayout;
         }
 
+        function drawNormalOutcome(spec) {
+            const chargeProb = spec.chargeProb || 0;
+            const roll = Math.random();
+            if (roll < spec.hitProb) return 'hit';
+            if (roll < spec.hitProb + chargeProb) return 'charge';
+            return 'none';
+        }
+
         // UI更新
         function updateDisplay(rotations, balls, investment) {
             lastRotations = rotations;
@@ -1860,6 +1868,7 @@
             let totalInvestment = 0;
             let hitCount = 0;
             let maxSessionChain = 0;  // セッション中の最大連チャン
+            let maxSessionPayout = 0; // セッション中の一撃最高出玉
 
             function consumeBalls(amount) {
                 if (myBalls >= amount) {
@@ -1877,6 +1886,7 @@
             while (rotations < totalSpins && !shouldStop) {
                 let spinsToHit = 0;
                 let chargeBousou = false;
+                let figureHit = false;
 
                 // 通常状態
                 setState('通常');
@@ -1890,8 +1900,10 @@
                         await sleep(baseDelay / 5);
                     }
 
+                    const normalOutcome = drawNormalOutcome(spec);
+
                     // チャージ
-                    if (spec.chargeProb > 0 && Math.random() < spec.chargeProb) {
+                    if (normalOutcome === 'charge') {
                         myBalls += spec.chargePayout;
                         addLog(`⚡ チャージ！ +${spec.chargePayout}発`, 'log-charge');
                         playEffect('charge', 'CHARGE', `+${spec.chargePayout.toLocaleString()}発`, 900);
@@ -1906,12 +1918,14 @@
                     }
 
                     // 当たり判定
-                    if (Math.random() < spec.hitProb) {
+                    if (normalOutcome === 'hit') {
+                        figureHit = true;
                         break;
                     }
                 }
 
-                if (shouldStop || rotations >= totalSpins) break;
+                if (shouldStop) break;
+                if (!chargeBousou && !figureHit) break;
 
                 hitCount++;
                 updateDisplay(rotations, myBalls, totalInvestment);
@@ -1933,6 +1947,8 @@
                 }
                 flashStat('ballsDisplay');
                 flashStat('profitDisplay');
+                maxSessionChain = Math.max(maxSessionChain, 1);
+                maxSessionPayout = Math.max(maxSessionPayout, firstPayout);
 
                 await sleep(baseDelay * 3);
 
@@ -1963,6 +1979,7 @@
                             flashStat('ballsDisplay');
                             await sleep(baseDelay * 3);
                             addLog(`終了 → 1連 計${chainPayout.toLocaleString()}発`, 'log-st');
+                            maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
                         } else {
                             // チャレンジ成功 → RUSH突入
                             addLog(`🔥 ${challengeName}勝利！ ${rushName}突入！`, 'log-st');
@@ -1998,12 +2015,13 @@
                             await sleep(baseDelay * 2);
                             addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
                             maxSessionChain = Math.max(maxSessionChain, chainCount);
+                            maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
                         }
                     } else {
                         // 通常ST/LT機種
                         const rushName = getRushName(machineKey);
                         addLog(`>>> ${rushName}突入！（${spec.stSpins}回転）`, 'log-st');
-                        setState(stLabel, `${spec.stSpins}回転`);
+                        setState(rushName, `${spec.stSpins}回転`);
                         playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
                         await sleep(baseDelay * 5);
 
@@ -2045,8 +2063,9 @@
                             await sleep(baseDelay * 2);
                         }
 
-                        addLog(`${stLabel}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
+                        addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
                         maxSessionChain = Math.max(maxSessionChain, chainCount);
+                        maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
 
                         // インパクトモード終了後の残保留チェック（eva15向け）
                         if (!spec.isLT && spec.zanhoCount > 0) {
@@ -2099,8 +2118,9 @@
                                         await sleep(baseDelay * 4);
                                     }
 
-                                    addLog(`${stLabel}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
+                                    addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
                                     maxSessionChain = Math.max(maxSessionChain, chainCount);
+                                    maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
                                     break;
                                 }
                             }
@@ -2182,8 +2202,9 @@
                             await sleep(baseDelay * 4);
                         }
 
-                        addLog(`ST終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
+                        addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
                         maxSessionChain = Math.max(maxSessionChain, chainCount);
+                        maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
                     } else {
                         // 残保留チェック
                         if (spec.zanhoCount > 0) {
@@ -2237,8 +2258,9 @@
                                         await sleep(baseDelay * 4);
                                     }
 
-                                    addLog(`ST終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
+                                    addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
                                     maxSessionChain = Math.max(maxSessionChain, chainCount);
+                                    maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
                                     break;
                                 }
                             }
@@ -2262,7 +2284,7 @@
             addLog('─'.repeat(30));
             addLog(`【最終結果】`);
             addLog(`総回転数: ${rotations.toLocaleString()}回転`);
-            addLog(`総当たり: ${hitCount}回`);
+            addLog(`初当り: ${hitCount}回`);
             addLog(`持ち玉: ${Math.floor(myBalls).toLocaleString()}発`);
             addLog(`収支: ${(finalProfit >= 0 ? '+' : '')}${finalProfit.toLocaleString()}円`);
 
@@ -2281,7 +2303,7 @@
             addSessionResult(totalInvestment, Math.floor(myBalls));
 
             // ランキング更新
-            updateRankingWithResult(finalProfit, maxSessionChain, Math.floor(myBalls));
+            updateRankingWithResult(finalProfit, maxSessionChain, maxSessionPayout);
 
             setState('終了');
             playEffect(

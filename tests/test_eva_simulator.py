@@ -70,6 +70,29 @@ class SimulationTests(unittest.TestCase):
         self.assertEqual(result.chain_details[0].total_payout, 1000)
         self.assertAlmostEqual(result.profit, 3900.0)
 
+    def test_charge_only_session_does_not_record_figure_hit(self):
+        spec = MachineSpec(
+            name="Charge Only",
+            hit_prob=0.0,
+            st_hit_prob=0.0,
+            border_touka=10.0,
+            heso_payouts=[(1.0, 0, False)],
+            denchu_payouts=[(1.0, 0)],
+            jitan_spins_on_fail=0,
+            zanho_count=0,
+            charge_prob=1.0,
+            charge_payout=300,
+            charge_st_rate=0.0,
+        )
+
+        result = simulate_session(spec, total_rotations=1, rotation_per_1k=10.0)
+
+        self.assertEqual(result.total_hits, 0)
+        self.assertEqual(result.first_hit_rotation, 0)
+        self.assertEqual(result.max_chain, 0)
+        self.assertEqual(result.chains, [])
+        self.assertAlmostEqual(result.profit, 1100.0)
+
     def test_run_simulation_returns_requested_number_of_sessions(self):
         np.random.seed(11)
         results = run_simulation(EVA15, total_rotations=5, rotation_per_1k=18.0, num_simulations=3)

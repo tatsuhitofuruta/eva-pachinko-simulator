@@ -51,7 +51,7 @@ garo: {
     chargePayout: 0,
     chargeStRate: 0,
     isLT: true,              // 継続率システム（内部フラグ）
-    ltChallengeRate: 0.50,   // 魔戒チャンス突入率50%
+    ltChallengeRate: 0,      // 突入率50%はヘソ振り分けで表現済み
     ltFirstPayout: 0,        // 追加出玉なし
     ltEndPayout: 1750,       // 転落時も15R
     stContinueRate: 0.82     // 魔戒チャンス継続率82%

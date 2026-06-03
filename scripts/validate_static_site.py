@@ -33,6 +33,7 @@ REQUIRED_IDS = {
 
 REQUIRED_FUNCTIONS = {
     "startSimulation",
+    "drawNormalOutcome",
     "getHesoResult",
     "getDenchuPayout",
     "updateDisplay",
@@ -108,6 +109,23 @@ def find_missing_functions(script_text: str, function_names: set[str]) -> set[st
     return missing
 
 
+def extract_js_object_block(script_text: str, object_key: str) -> str:
+    match = re.search(rf"\b{re.escape(object_key)}\s*:\s*\{{", script_text)
+    if not match:
+        return ""
+
+    depth = 0
+    for index in range(match.end() - 1, len(script_text)):
+        char = script_text[index]
+        if char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return script_text[match.start():index + 1]
+    return ""
+
+
 def main() -> int:
     if not INDEX_HTML.exists():
         print(f"Missing {INDEX_HTML}", file=sys.stderr)
@@ -161,6 +179,21 @@ def main() -> int:
             "Missing net payout conversion calls: "
             + ", ".join(sorted(missing_net_payout_calls))
         )
+
+    garo_block = extract_js_object_block(script_text, "garo")
+    if not re.search(r"\bltChallengeRate\s*:\s*0\s*,", garo_block):
+        errors.append("garo should not double-apply 50% Makai entry after heso split")
+
+    ghoul_block = extract_js_object_block(script_text, "ghoul")
+    ghoul_expectations = {
+        "model ghoul rush as ST, not one-roll LT": r"\bisLT\s*:\s*false\s*,",
+        "avoid double-applying 51% ghoul rush entry": r"\bltChallengeRate\s*:\s*0\s*,",
+        "keep ghoul rush at ST130": r"\bstSpins\s*:\s*130\s*,",
+        "keep ghoul rush probability at 1/95.3": r"\bstHitProb\s*:\s*1\s*/\s*95\.3\s*,",
+    }
+    for description, pattern in ghoul_expectations.items():
+        if not re.search(pattern, ghoul_block):
+            errors.append(f"ghoul should {description}")
 
     if errors:
         for error in errors:

@@ -32,7 +32,7 @@ class ChainDetail:
 class SessionResult:
     """1回の稼働結果"""
     profit: float               # 収支（円）
-    total_hits: int             # 総当たり回数
+    total_hits: int             # 初当たり/引き戻し回数
     first_hit_rotation: int     # 初当たり回転数（0=当たらず）
     max_chain: int              # 最大連チャン数
     chains: List[int]           # 各初当たりの連チャン数リスト
@@ -181,6 +181,16 @@ def get_denchu_payout(spec: MachineSpec) -> int:
     return spec.denchu_payouts[-1][1]
 
 
+def draw_normal_outcome(spec: MachineSpec) -> str:
+    """通常時1回転の結果を図柄当たり・チャージ・ハズレの排他結果として抽選"""
+    r = np.random.random()
+    if r < spec.hit_prob:
+        return "hit"
+    if r < spec.hit_prob + spec.charge_prob:
+        return "charge"
+    return "none"
+
+
 def simulate_session(
     spec: MachineSpec,
     total_rotations: int,
@@ -212,22 +222,24 @@ def simulate_session(
         spins_to_hit = 0
 
         # 当たりを引くまで回す（通常状態）
-        charge_triggered = False
         charge_bousou = False
+        figure_hit = False
         while rotations < total_rotations:
             rotations += 1
             spins_to_hit += 1
 
+            normal_outcome = draw_normal_outcome(spec)
+
             # チャージチェック
-            if spec.charge_prob > 0 and np.random.random() < spec.charge_prob:
+            if normal_outcome == "charge":
                 total_payout += spec.charge_payout
-                charge_triggered = True
                 # 暴走チェック（ST突入）
                 if np.random.random() < spec.charge_st_rate:
                     charge_bousou = True
                     break
 
-            if np.random.random() < spec.hit_prob:
+            if normal_outcome == "hit":
+                figure_hit = True
                 break
 
         # 投資玉数を計算（通常状態）
@@ -265,7 +277,7 @@ def simulate_session(
         else:
             # 通常の初当たり処理
             # 規定回転数に達して当たらなかった場合は終了
-            if rotations >= total_rotations and np.random.random() >= spec.hit_prob:
+            if not figure_hit:
                 break
 
             # 初当たり記録
@@ -640,7 +652,7 @@ def print_session_details(results: List[SessionResult], spec: MachineSpec):
 
         # セッションサマリー
         print(f"\n  {'-'*40}")
-        print(f"  総当たり回数: {len(result.chain_details)}回")
+        print(f"  初当り回数: {len(result.chain_details)}回")
         print(f"  総獲得出玉: {total_payout:,}発")
         print(f"  最終収支: {result.profit:+,.0f}円")
 
@@ -795,6 +807,7 @@ def play_realtime_session(
     while rotations < total_rotations:
         spins_to_hit = 0
         charge_bousou = False
+        figure_hit = False
 
         # 通常状態：当たりを引くまで回す
         while rotations < total_rotations:
@@ -807,8 +820,10 @@ def play_realtime_session(
                 show_status("通常")
                 wait(0.005)
 
+            normal_outcome = draw_normal_outcome(spec)
+
             # チャージチェック
-            if spec.charge_prob > 0 and np.random.random() < spec.charge_prob:
+            if normal_outcome == "charge":
                 my_balls += spec.charge_payout
                 print(f"\n  ⚡ チャージ発動！ +{spec.charge_payout}発")
                 if np.random.random() < spec.charge_st_rate:
@@ -818,13 +833,13 @@ def play_realtime_session(
                     break
 
             # 当たり判定
-            if np.random.random() < spec.hit_prob:
+            if normal_outcome == "hit":
+                figure_hit = True
                 break
 
         # 規定回転に達した場合
-        if rotations >= total_rotations and not charge_bousou:
-            if np.random.random() >= spec.hit_prob:
-                break
+        if not charge_bousou and not figure_hit:
+            break
 
         hit_count += 1
 
@@ -923,7 +938,7 @@ def play_realtime_session(
     print(f"【最終結果】")
     print(f"{'#'*60}")
     print(f"  総回転数: {rotations:,}回転")
-    print(f"  総当たり: {hit_count}回")
+    print(f"  初当り:   {hit_count}回")
     print(f"  持ち玉:   {int(my_balls):,}発")
     print(f"  投資:     {total_investment:,}円")
     print(f"  収支:     {profit:+,}円")
