@@ -13,6 +13,10 @@
             --panel: rgba(10, 16, 28, 0.88);
             --panel-strong: #05070d;
             --line: rgba(255,255,255,0.16);
+            --panel-rail: rgba(255,255,255,0.07);
+            --success: #4ecdc4;
+            --danger: #ff6b6b;
+            --warning: #f59e0b;
         }
         body[data-machine="garo"],
         body[data-machine="garo12"] {
@@ -33,6 +37,7 @@
             background:
                 linear-gradient(180deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 34px),
                 linear-gradient(90deg, rgba(78,205,196,0.05) 0 1px, transparent 1px 44px),
+                linear-gradient(128deg, transparent 0 18%, rgba(255,255,255,0.035) 18% 18.4%, transparent 18.4% 42%, rgba(255,255,255,0.03) 42% 42.3%, transparent 42.3%),
                 linear-gradient(135deg, #130d1c 0%, #101c2f 42%, #171018 100%);
             color: #eee;
             min-height: 100vh;
@@ -67,6 +72,7 @@
             color: var(--accent);
             text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);
             margin-bottom: 10px;
+            letter-spacing: 0;
         }
         .subtitle {
             text-align: center;
@@ -74,10 +80,16 @@
             margin-bottom: 30px;
         }
         .controls {
-            background: rgba(255,255,255,0.1);
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.12), transparent 42%),
+                rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.11);
             padding: 20px;
             border-radius: 10px;
             margin-bottom: 20px;
+            box-shadow:
+                inset 0 1px 0 rgba(255,255,255,0.08),
+                0 18px 42px rgba(0,0,0,0.22);
         }
         .control-row {
             display: flex;
@@ -98,11 +110,19 @@
         select, input {
             width: 100%;
             padding: 10px;
-            border: none;
+            border: 1px solid rgba(255,255,255,0.08);
             border-radius: 5px;
-            background: rgba(255,255,255,0.15);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03)),
+                rgba(255,255,255,0.11);
             color: #fff;
             font-size: 16px;
+            text-overflow: ellipsis;
+        }
+        select:focus,
+        input:focus {
+            outline: 2px solid color-mix(in srgb, var(--accent-2) 58%, transparent);
+            outline-offset: 2px;
         }
         select option {
             background: #1a1a2e;
@@ -394,7 +414,10 @@
             margin-top: 20px;
         }
         .stat-box {
-            background: rgba(255,255,255,0.1);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02)),
+                rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.08);
             padding: 15px;
             border-radius: 8px;
             text-align: center;
@@ -481,11 +504,14 @@
             flex: 1;
         }
         .cumulative-stats {
-            background: linear-gradient(135deg, #1e3a5f, #0d1b2a);
-            border: 2px solid #4ecdc4;
+            background:
+                linear-gradient(135deg, rgba(78,205,196,0.18), transparent 42%),
+                rgba(4, 12, 24, 0.78);
+            border: 1px solid color-mix(in srgb, var(--accent-2) 62%, transparent);
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
+            box-shadow: inset 0 0 24px rgba(78,205,196,0.06);
         }
         .cumulative-header {
             display: flex;
@@ -497,12 +523,13 @@
         }
         .btn-reset {
             background: rgba(255,255,255,0.1);
-            border: 1px solid #666;
-            color: #888;
+            border: 1px solid rgba(255,255,255,0.18);
+            color: rgba(255,255,255,0.68);
             padding: 5px 12px;
             border-radius: 5px;
             cursor: pointer;
             font-size: 12px;
+            transition: border-color 180ms ease, color 180ms ease, background 180ms ease;
         }
         .btn-reset:hover {
             background: rgba(255,100,100,0.2);
@@ -540,10 +567,13 @@
         }
         .ranking-panel {
             flex: 1;
-            background: linear-gradient(135deg, #3d2a1e, #1a1a2e);
-            border: 2px solid #f59e0b;
+            background:
+                linear-gradient(135deg, rgba(245,158,11,0.18), transparent 42%),
+                rgba(18, 12, 22, 0.82);
+            border: 1px solid color-mix(in srgb, var(--warning) 68%, transparent);
             border-radius: 10px;
             padding: 15px;
+            box-shadow: inset 0 0 24px rgba(245,158,11,0.06);
         }
         .ranking-panel .cumulative-header {
             color: #f59e0b;
@@ -554,7 +584,10 @@
             gap: 10px;
         }
         .ranking-item {
-            background: rgba(0,0,0,0.3);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.08), transparent),
+                rgba(0,0,0,0.28);
+            border: 1px solid rgba(255,255,255,0.07);
             border-radius: 8px;
             padding: 10px;
             text-align: center;
@@ -581,11 +614,16 @@
 
         /* カレンダー */
         .calendar-panel {
-            background: linear-gradient(135deg, #1a2a3a, #0d1b2a);
-            border: 2px solid #667788;
+            background:
+                linear-gradient(135deg, rgba(102,119,136,0.18), transparent 44%),
+                rgba(6, 14, 25, 0.86);
+            border: 1px solid rgba(160,180,205,0.26);
             border-radius: 10px;
             padding: 15px;
             margin-bottom: 20px;
+            box-shadow:
+                inset 0 0 30px rgba(78,205,196,0.05),
+                0 22px 54px rgba(0,0,0,0.24);
         }
         .calendar-header {
             display: flex;
@@ -625,7 +663,10 @@
             gap: 2px;
         }
         .calendar-day {
-            background: #1e2e3e;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.07), transparent),
+                rgba(30,46,62,0.82);
+            border: 1px solid rgba(255,255,255,0.06);
             border-radius: 5px;
             padding: 5px;
             min-height: 50px;
@@ -661,6 +702,82 @@
         }
         .calendar-summary .plus { color: #4ecdc4; }
         .calendar-summary .minus { color: #ff6b6b; }
+        .chart-panel {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 12px;
+            margin-bottom: 8px;
+            color: var(--accent-2);
+            font-weight: bold;
+        }
+        .chart-caption {
+            color: rgba(255,255,255,0.48);
+            font-size: 11px;
+            font-family: 'Courier New', monospace;
+        }
+        .chart-frame {
+            position: relative;
+            height: 148px;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            overflow: hidden;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.05), transparent),
+                repeating-linear-gradient(0deg, transparent 0 27px, rgba(255,255,255,0.045) 27px 28px),
+                rgba(0,0,0,0.32);
+        }
+        .chart-frame canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .chart-empty {
+            position: absolute;
+            inset: 0;
+            display: grid;
+            place-items: center;
+            color: rgba(255,255,255,0.42);
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            pointer-events: none;
+        }
+        .chart-panel.has-data .chart-empty {
+            display: none;
+        }
+        .chart-metrics {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-top: 9px;
+        }
+        .chart-metric {
+            min-width: 0;
+            padding: 7px 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 7px;
+            background: rgba(255,255,255,0.05);
+        }
+        .chart-metric span {
+            display: block;
+            color: rgba(255,255,255,0.48);
+            font-size: 10px;
+            margin-bottom: 3px;
+        }
+        .chart-metric strong {
+            display: block;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #fff;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
         @media (max-width: 600px) {
             .stats-panels {
                 flex-direction: column;
@@ -708,6 +825,266 @@
         .final-stat-label {
             color: #888;
             font-size: 14px;
+        }
+        @media (min-width: 1100px) {
+            body {
+                height: 100vh;
+                padding: 12px 14px;
+                overflow: hidden;
+            }
+            body::before {
+                opacity: 0.24;
+            }
+            .container {
+                max-width: 1540px;
+                width: min(100%, 1540px);
+                height: calc(100vh - 24px);
+                display: grid;
+                grid-template-columns: minmax(282px, 320px) minmax(520px, 1fr) minmax(360px, 430px);
+                grid-template-rows: 54px 204px minmax(225px, 1fr) minmax(210px, 0.9fr);
+                grid-template-areas:
+                    "title title title"
+                    "controls display calendar"
+                    "stats display calendar"
+                    "final log calendar";
+                gap: 12px;
+            }
+            h1 {
+                grid-area: title;
+                align-self: center;
+                margin: 0;
+                font-size: clamp(26px, 2.1vw, 36px);
+                text-align: left;
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                white-space: nowrap;
+            }
+            h1::after {
+                content: "";
+                flex: 1;
+                height: 1px;
+                background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 72%, transparent), transparent);
+                box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 42%, transparent);
+            }
+            .controls,
+            .display,
+            .log,
+            .stats-panels,
+            .calendar-panel,
+            .final-result {
+                margin: 0;
+                min-width: 0;
+                min-height: 0;
+            }
+            .controls {
+                grid-area: controls;
+                padding: 14px;
+                display: grid;
+                grid-template-rows: auto auto 1fr;
+                align-content: stretch;
+                gap: 10px;
+                position: relative;
+                overflow: hidden;
+            }
+            .controls::before,
+            .display::before,
+            .log::before,
+            .calendar-panel::before,
+            .stats-panels::before,
+            .final-result::before {
+                content: "";
+                position: absolute;
+                left: 10px;
+                right: 10px;
+                top: 0;
+                height: 2px;
+                background: linear-gradient(90deg, transparent, var(--accent), var(--accent-2), transparent);
+                opacity: 0.72;
+                pointer-events: none;
+            }
+            .control-row {
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                gap: 10px;
+                margin: 0;
+            }
+            .control-row:first-child {
+                grid-template-columns: minmax(0, 1.45fr) minmax(0, 0.9fr);
+            }
+            .control-group {
+                min-width: 0;
+            }
+            label {
+                font-size: 12px;
+                margin-bottom: 4px;
+            }
+            select,
+            input {
+                min-height: 40px;
+                padding: 8px 10px;
+                font-size: 14px;
+            }
+            .btn {
+                align-self: end;
+                min-height: 48px;
+                padding: 12px;
+                font-size: 16px;
+                border-radius: 7px;
+            }
+            .display {
+                grid-area: display;
+                padding: 18px;
+                display: grid;
+                grid-template-rows: minmax(190px, 1fr) auto auto auto;
+                align-content: stretch;
+                position: relative;
+            }
+            .machine-stage {
+                min-height: 0;
+                height: 100%;
+                margin-bottom: 12px;
+            }
+            .rotation-display {
+                font-size: clamp(44px, 4.8vw, 76px);
+                line-height: 0.95;
+            }
+            .rotation-label {
+                margin-top: 2px;
+            }
+            .stats {
+                margin-top: 12px;
+            }
+            .stat-box {
+                padding: 11px 8px;
+            }
+            .stat-value {
+                font-size: clamp(20px, 1.8vw, 30px);
+            }
+            .status-line {
+                margin: 0;
+                padding-top: 8px;
+                font-size: 13px;
+            }
+            .log {
+                grid-area: log;
+                height: 100%;
+                position: relative;
+                padding: 13px;
+                font-size: 12px;
+            }
+            .stats-panels {
+                grid-area: stats;
+                position: relative;
+                display: grid;
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            .stats-panels .cumulative-stats,
+            .ranking-panel {
+                padding: 12px;
+            }
+            .cumulative-header {
+                margin-bottom: 10px;
+            }
+            .cumulative-grid {
+                grid-template-columns: repeat(3, 1fr);
+                gap: 7px;
+            }
+            .cumulative-value {
+                font-size: 14px;
+            }
+            .cumulative-label {
+                font-size: 10px;
+            }
+            .ranking-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .ranking-item {
+                padding: 8px 6px;
+            }
+            .ranking-value {
+                font-size: 13px;
+            }
+            .calendar-panel {
+                grid-area: calendar;
+                display: flex;
+                flex-direction: column;
+                position: relative;
+                padding: 13px;
+            }
+            .calendar-header {
+                gap: 8px;
+                justify-content: space-between;
+                margin-bottom: 7px;
+                font-size: 14px;
+            }
+            .calendar-nav {
+                padding: 4px 8px;
+            }
+            .calendar-weekdays {
+                flex: 0 0 auto;
+            }
+            .calendar-grid {
+                flex: 1 1 auto;
+                min-height: 0;
+                grid-auto-rows: minmax(34px, 1fr);
+            }
+            .calendar-day {
+                min-height: 0;
+                padding: 4px;
+            }
+            .calendar-summary {
+                flex: 0 0 auto;
+                margin-top: 8px;
+                padding-top: 8px;
+                font-size: 13px;
+            }
+            .chart-panel {
+                flex: 0 0 auto;
+                margin-top: 10px;
+                padding-top: 10px;
+            }
+            .chart-frame {
+                height: clamp(118px, 15vh, 158px);
+            }
+            .chart-metrics {
+                gap: 6px;
+            }
+            .chart-metric {
+                padding: 6px;
+            }
+            .chart-metric strong {
+                font-size: 12px;
+            }
+            .final-result {
+                grid-area: final;
+                position: relative;
+                align-self: stretch;
+                padding: 14px;
+                text-align: left;
+            }
+            .final-result h2 {
+                margin: 0 0 10px;
+                font-size: 16px;
+            }
+            .final-stats {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .final-stat {
+                padding: 8px;
+                border: 1px solid rgba(255,255,255,0.08);
+                border-radius: 7px;
+                background: rgba(255,255,255,0.04);
+            }
+            .final-stat-value {
+                font-size: 19px;
+            }
+            .final-stat-label {
+                font-size: 11px;
+            }
         }
         @keyframes stageSweep {
             from { transform: translateX(-55%); }
@@ -852,11 +1229,11 @@
                 <div class="control-group">
                     <label>機種</label>
                     <select id="machine">
-                        <option value="eva15">汎用人型決戦兵器15</option>
-                        <option value="eva17">汎用人型決戦兵器17</option>
-                        <option value="garo">黄金騎士</option>
-                        <option value="garo12">黄金騎士12</option>
-                        <option value="ghoul">喰種</option>
+                        <option value="eva15">P新世紀エヴァンゲリオン15 未来への咆哮</option>
+                        <option value="eva17">e 新世紀エヴァンゲリオン ～はじまりの記憶～</option>
+                        <option value="garo">CR牙狼XX</option>
+                        <option value="garo12">e牙狼12黄金騎士極限</option>
+                        <option value="ghoul">e 東京喰種</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -1026,6 +1403,30 @@
                 <span>月間: <span id="monthSessions">0</span>稼働</span>
                 <span id="monthProfit">±0円</span>
             </div>
+            <div class="chart-panel" id="profitChartPanel">
+                <div class="chart-header">
+                    <span>収支グラフ</span>
+                    <span class="chart-caption">CUMULATIVE</span>
+                </div>
+                <div class="chart-frame">
+                    <canvas id="profitChart" width="640" height="240"></canvas>
+                    <div class="chart-empty" id="profitChartEmpty">NO DATA</div>
+                </div>
+                <div class="chart-metrics">
+                    <div class="chart-metric">
+                        <span>現在</span>
+                        <strong id="chartCurrent">±0円</strong>
+                    </div>
+                    <div class="chart-metric">
+                        <span>最高</span>
+                        <strong id="chartPeak">±0円</strong>
+                    </div>
+                    <div class="chart-metric">
+                        <span>最低</span>
+                        <strong id="chartLow">±0円</strong>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="final-result" id="finalResult">
@@ -1058,7 +1459,7 @@
         // 機種スペック
         const SPECS = {
             eva15: {
-                name: "汎用人型決戦兵器15",
+                name: "P新世紀エヴァンゲリオン15 未来への咆哮",
                 hitProb: 1 / 319.7,
                 stHitProb: 1 / 99.4,       // インパクトモード中確率
                 hesoPayouts: [
@@ -1079,7 +1480,7 @@
                 stContinueRate: 0.807      // インパクトモード継続率
             },
             eva17: {
-                name: "汎用人型決戦兵器17",
+                name: "e 新世紀エヴァンゲリオン ～はじまりの記憶～",
                 hitProb: 1 / 399.9,
                 stHitProb: 1 / 99.6,       // インパクトモード中確率
                 hesoPayouts: [
@@ -1100,7 +1501,7 @@
                 stContinueRate: 0.795      // インパクトモード継続率
             },
             garo: {
-                name: "黄金騎士",
+                name: "CR牙狼XX",
                 hitProb: 1 / 397.18,     // MAXタイプ
                 stHitProb: 1.0,          // 魔戒チャンス中は100%（V入賞）
                 hesoPayouts: [
@@ -1124,7 +1525,7 @@
                 stContinueRate: 0.82     // 魔戒チャンス継続率82%
             },
             garo12: {
-                name: "黄金騎士12",
+                name: "e牙狼12黄金騎士極限",
                 hitProb: 1 / 437.49,
                 stHitProb: 1.0,
                 hesoPayouts: [
@@ -1149,9 +1550,9 @@
                 ltEndPayout: 1400,      // LT転落時1400発
                 stContinueRate: 0.76    // LT継続率76%
             },
-            // 喰種（e東京喰種）
+            // e 東京喰種
             ghoul: {
-                name: "喰種",
+                name: "e 東京喰種",
                 hitProb: 1 / 399.9,
                 stHitProb: 1 / 95.3,       // HYPER喰種RUSH中確率
                 hesoPayouts: [
@@ -1434,6 +1835,16 @@
             return [];
         }
 
+        function getVirtualDateString(dayOffset) {
+            const baseDate = new Date(2026, 0, 1); // 2026-01-01
+            const virtualDate = new Date(baseDate);
+            virtualDate.setDate(baseDate.getDate() + dayOffset);
+            const year = virtualDate.getFullYear();
+            const month = String(virtualDate.getMonth() + 1).padStart(2, '0');
+            const day = String(virtualDate.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
         // 既存データを仮想日付に変換（マイグレーション）
         function migrateToVirtualDates() {
             const history = loadSessionHistory();
@@ -1441,11 +1852,8 @@
 
             // 最初のセッションの日付が2026-01-01でなければマイグレーション実行
             if (history[0].date !== '2026-01-01') {
-                const baseDate = new Date(2026, 0, 1);
                 history.forEach((session, index) => {
-                    const virtualDate = new Date(baseDate);
-                    virtualDate.setDate(baseDate.getDate() + index);
-                    session.date = virtualDate.toISOString().split('T')[0];
+                    session.date = getVirtualDateString(index);
                     session.day = index + 1;
                 });
                 saveSessionHistory(history);
@@ -1460,11 +1868,8 @@
             const history = loadSessionHistory();
             // 仮想日付: 1回の稼働 = 1日として記録
             // 開始日を2026-01-01として、セッション数に応じて日付を進める
-            const baseDate = new Date(2026, 0, 1); // 2026-01-01
             const dayNumber = history.length; // 0から始まるので、これが経過日数
-            const virtualDate = new Date(baseDate);
-            virtualDate.setDate(baseDate.getDate() + dayNumber);
-            const dateStr = virtualDate.toISOString().split('T')[0];
+            const dateStr = getVirtualDateString(dayNumber);
 
             const profit = Math.round((payout * 4) - invest);
             history.push({
@@ -1614,6 +2019,165 @@
             monthSessionsEl.textContent = monthTotalSessions;
             monthProfitEl.textContent = (monthTotalProfit >= 0 ? '+' : '') + monthTotalProfit.toLocaleString() + '円';
             monthProfitEl.className = monthTotalProfit >= 0 ? 'plus' : 'minus';
+            renderProfitChart();
+        }
+
+        function formatSignedYen(value) {
+            const rounded = Math.round(value);
+            if (rounded === 0) return '±0円';
+            return (rounded > 0 ? '+' : '') + rounded.toLocaleString() + '円';
+        }
+
+        function getCumulativeProfitSeries() {
+            let cumulative = 0;
+            return loadSessionHistory().map((session, index) => {
+                cumulative += session.profit;
+                return {
+                    index: index + 1,
+                    profit: session.profit,
+                    cumulative
+                };
+            });
+        }
+
+        function renderProfitChart() {
+            const panel = document.getElementById('profitChartPanel');
+            const canvas = document.getElementById('profitChart');
+            if (!panel || !canvas) return;
+
+            const currentEl = document.getElementById('chartCurrent');
+            const peakEl = document.getElementById('chartPeak');
+            const lowEl = document.getElementById('chartLow');
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const width = Math.max(1, rect.width || canvas.width);
+            const height = Math.max(1, rect.height || canvas.height);
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = Math.floor(width * dpr);
+            canvas.height = Math.floor(height * dpr);
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+            ctx.clearRect(0, 0, width, height);
+
+            const series = getCumulativeProfitSeries();
+            if (series.length === 0) {
+                panel.classList.remove('has-data');
+                currentEl.textContent = '±0円';
+                peakEl.textContent = '±0円';
+                lowEl.textContent = '±0円';
+                drawEmptyChartGrid(ctx, width, height);
+                return;
+            }
+
+            panel.classList.add('has-data');
+            const cumulativeValues = series.map(point => point.cumulative);
+            const current = cumulativeValues[cumulativeValues.length - 1];
+            const peak = Math.max(0, ...cumulativeValues);
+            const low = Math.min(0, ...cumulativeValues);
+            currentEl.textContent = formatSignedYen(current);
+            peakEl.textContent = formatSignedYen(peak);
+            lowEl.textContent = formatSignedYen(low);
+
+            const padding = { top: 14, right: 12, bottom: 22, left: 42 };
+            const plotWidth = width - padding.left - padding.right;
+            const plotHeight = height - padding.top - padding.bottom;
+            let minValue = low;
+            let maxValue = peak;
+            if (minValue === maxValue) {
+                minValue -= 1000;
+                maxValue += 1000;
+            }
+            const range = maxValue - minValue;
+            const yFor = value => padding.top + (maxValue - value) / range * plotHeight;
+            const points = [{ index: 0, cumulative: 0 }, ...series];
+            const xFor = position => padding.left + (points.length === 1 ? plotWidth : position / (points.length - 1) * plotWidth);
+            const zeroY = yFor(0);
+
+            drawChartGrid(ctx, width, height, padding, plotWidth, plotHeight, minValue, maxValue, yFor);
+
+            ctx.save();
+            ctx.beginPath();
+            points.forEach((point, index) => {
+                const x = xFor(index);
+                const y = yFor(point.cumulative);
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.lineTo(xFor(points.length - 1), zeroY);
+            ctx.lineTo(xFor(0), zeroY);
+            ctx.closePath();
+            const areaGradient = ctx.createLinearGradient(0, padding.top, 0, padding.top + plotHeight);
+            areaGradient.addColorStop(0, 'rgba(78, 205, 196, 0.30)');
+            areaGradient.addColorStop(0.52, 'rgba(255, 255, 255, 0.04)');
+            areaGradient.addColorStop(1, 'rgba(255, 107, 107, 0.22)');
+            ctx.fillStyle = areaGradient;
+            ctx.fill();
+            ctx.restore();
+
+            ctx.save();
+            ctx.beginPath();
+            points.forEach((point, index) => {
+                const x = xFor(index);
+                const y = yFor(point.cumulative);
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.lineWidth = 3;
+            ctx.strokeStyle = current >= 0 ? '#4ecdc4' : '#ff6b6b';
+            ctx.shadowBlur = 16;
+            ctx.shadowColor = current >= 0 ? 'rgba(78,205,196,0.65)' : 'rgba(255,107,107,0.55)';
+            ctx.stroke();
+            ctx.restore();
+
+            const lastX = xFor(points.length - 1);
+            const lastY = yFor(current);
+            ctx.save();
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowBlur = 14;
+            ctx.shadowColor = current >= 0 ? '#4ecdc4' : '#ff6b6b';
+            ctx.beginPath();
+            ctx.arc(lastX, lastY, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function drawEmptyChartGrid(ctx, width, height) {
+            drawChartGrid(ctx, width, height, { top: 14, right: 12, bottom: 22, left: 42 }, width - 54, height - 36, -1, 1, value => {
+                return 14 + (1 - value) / 2 * (height - 36);
+            });
+        }
+
+        function drawChartGrid(ctx, width, height, padding, plotWidth, plotHeight, minValue, maxValue, yFor) {
+            ctx.save();
+            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+            ctx.lineWidth = 1;
+            ctx.font = '10px Courier New, monospace';
+            ctx.fillStyle = 'rgba(255,255,255,0.42)';
+            for (let i = 0; i <= 4; i++) {
+                const value = minValue + (maxValue - minValue) * (i / 4);
+                const y = yFor(value);
+                ctx.beginPath();
+                ctx.moveTo(padding.left, y);
+                ctx.lineTo(width - padding.right, y);
+                ctx.stroke();
+                if (i === 0 || i === 4 || Math.abs(value) < 1) {
+                    ctx.fillText(formatChartAxis(value), 6, Math.min(height - 8, Math.max(12, y + 3)));
+                }
+            }
+
+            const zeroY = yFor(0);
+            ctx.strokeStyle = 'rgba(255,255,255,0.26)';
+            ctx.beginPath();
+            ctx.moveTo(padding.left, zeroY);
+            ctx.lineTo(width - padding.right, zeroY);
+            ctx.stroke();
+            ctx.restore();
+        }
+
+        function formatChartAxis(value) {
+            if (Math.abs(value) >= 1000) {
+                return `${Math.round(value / 1000)}k`;
+            }
+            return `${Math.round(value)}`;
         }
 
         // ページ読み込み時に累計表示を更新
@@ -1622,6 +2186,12 @@
             updateCumulativeDisplay();
             moveToLatestSession();
             renderCalendar();
+        });
+
+        let chartResizeTimer = null;
+        window.addEventListener('resize', function() {
+            clearTimeout(chartResizeTimer);
+            chartResizeTimer = setTimeout(renderProfitChart, 120);
         });
 
         // ========================================
@@ -1737,11 +2307,12 @@
         // UI更新
         function updateDisplay(rotations, balls, investment) {
             lastRotations = rotations;
+            const wholeBalls = Math.floor(balls);
             document.getElementById('rotationDisplay').textContent = rotations.toLocaleString();
-            document.getElementById('ballsDisplay').textContent = Math.floor(balls).toLocaleString();
+            document.getElementById('ballsDisplay').textContent = wholeBalls.toLocaleString();
             document.getElementById('investDisplay').textContent = investment.toLocaleString();
 
-            const profit = Math.floor(balls * 4) - investment;
+            const profit = wholeBalls * 4 - investment;
             const profitEl = document.getElementById('profitDisplay');
             profitEl.textContent = (profit >= 0 ? '+' : '') + profit.toLocaleString();
             profitEl.className = 'stat-value ' + (profit >= 0 ? 'profit-plus' : 'profit-minus');
@@ -2279,19 +2850,20 @@
 
             // 最終結果
             updateDisplay(rotations, myBalls, totalInvestment);
-            const finalProfit = Math.floor(myBalls * 4) - totalInvestment;
+            const finalBalls = Math.floor(myBalls);
+            const finalProfit = finalBalls * 4 - totalInvestment;
 
             addLog('─'.repeat(30));
             addLog(`【最終結果】`);
             addLog(`総回転数: ${rotations.toLocaleString()}回転`);
             addLog(`初当り: ${hitCount}回`);
-            addLog(`持ち玉: ${Math.floor(myBalls).toLocaleString()}発`);
+            addLog(`持ち玉: ${finalBalls.toLocaleString()}発`);
             addLog(`収支: ${(finalProfit >= 0 ? '+' : '')}${finalProfit.toLocaleString()}円`);
 
             // 結果表示
             document.getElementById('finalSpins').textContent = rotations.toLocaleString();
             document.getElementById('finalHits').textContent = hitCount;
-            document.getElementById('finalBalls').textContent = Math.floor(myBalls).toLocaleString();
+            document.getElementById('finalBalls').textContent = finalBalls.toLocaleString();
             const finalProfitEl = document.getElementById('finalProfit');
             finalProfitEl.textContent = (finalProfit >= 0 ? '+' : '') + finalProfit.toLocaleString() + '円';
             finalProfitEl.className = 'final-stat-value ' + (finalProfit >= 0 ? 'profit-plus' : 'profit-minus');
@@ -2300,7 +2872,7 @@
             finalResultPanel.style.display = 'block';
 
             // 累計収支に追加
-            addSessionResult(totalInvestment, Math.floor(myBalls));
+            addSessionResult(totalInvestment, finalBalls);
 
             // ランキング更新
             updateRankingWithResult(finalProfit, maxSessionChain, maxSessionPayout);

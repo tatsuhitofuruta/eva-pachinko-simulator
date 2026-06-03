@@ -1,4 +1,4 @@
-# 喰種（e東京喰種）設計書
+# e 東京喰種 設計書
 
 ## 参照元
 - [P-WORLD](https://www.p-world.co.jp/machine/database/10249)
@@ -47,7 +47,7 @@
 
 ```javascript
 ghoul: {
-    name: "喰種",
+    name: "e 東京喰種",
     hitProb: 1 / 399.9,        // 図柄揃い確率
     stHitProb: 1 / 95.3,       // RUSH中確率
     hesoPayouts: [

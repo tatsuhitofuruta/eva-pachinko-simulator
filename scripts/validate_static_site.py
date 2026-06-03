@@ -28,18 +28,22 @@ REQUIRED_IDS = {
     "cumPayout",
     "cumProfit",
     "calendarGrid",
+    "profitChart",
+    "profitChartPanel",
     "finalResult",
 }
 
 REQUIRED_FUNCTIONS = {
     "startSimulation",
     "drawNormalOutcome",
+    "getVirtualDateString",
     "getHesoResult",
     "getDenchuPayout",
     "updateDisplay",
     "setState",
     "addSessionResult",
     "renderCalendar",
+    "renderProfitChart",
 }
 
 REQUIRED_MACHINE_KEYS = {
@@ -179,6 +183,9 @@ def main() -> int:
             "Missing net payout conversion calls: "
             + ", ".join(sorted(missing_net_payout_calls))
         )
+
+    if "toISOString().split('T')[0]" in script_text or 'toISOString().split("T")[0]' in script_text:
+        errors.append("Virtual dates should use local date formatting, not UTC toISOString")
 
     garo_block = extract_js_object_block(script_text, "garo")
     if not re.search(r"\bltChallengeRate\s*:\s*0\s*,", garo_block):

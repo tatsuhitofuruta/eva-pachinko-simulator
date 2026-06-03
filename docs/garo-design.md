@@ -1,4 +1,4 @@
-# 黄金騎士（初代CR牙狼）設計書
+# CR牙狼XX（初代CR牙狼）設計書
 
 ## 参照元
 - [パチンコ機種攻略情報](http://p-kn.com/pachinko/528/)
@@ -33,7 +33,7 @@
 
 ```javascript
 garo: {
-    name: "黄金騎士",
+    name: "CR牙狼XX",
     hitProb: 1 / 397.18,
     stHitProb: 1 / 1,        // 魔戒チャンス中は100%当選（V入賞）
     hesoPayouts: [

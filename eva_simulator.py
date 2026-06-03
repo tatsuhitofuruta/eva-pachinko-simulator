@@ -73,7 +73,7 @@ class MachineSpec:
 
 # 機種スペック定義
 EVA15 = MachineSpec(
-    name="汎用人型決戦兵器15",
+    name="P新世紀エヴァンゲリオン15 未来への咆哮",
     hit_prob=1 / 319.7,
     st_hit_prob=1 / 99.4,
     border_touka=17.0,
@@ -96,7 +96,7 @@ EVA15 = MachineSpec(
 )
 
 EVA17 = MachineSpec(
-    name="汎用人型決戦兵器17",
+    name="e 新世紀エヴァンゲリオン ～はじまりの記憶～",
     hit_prob=1 / 399.9,
     st_hit_prob=1 / 99.6,
     border_touka=16.8,
@@ -117,7 +117,7 @@ EVA17 = MachineSpec(
     jitan_spins_on_fail=100,
     jitan_spins_after_st=0,
     jitan_rotation_per_1k=30.0,
-    zanho_count=0,             # 汎用人型決戦兵器17は残保留なし
+    zanho_count=0,             # e新世紀エヴァンゲリオン17は残保留なし
     zanho_st_rate=1.0,
     # チャージ
     charge_prob=1 / 2750.9,    # チャージ確率
@@ -125,13 +125,13 @@ EVA17 = MachineSpec(
     charge_st_rate=0.02,       # 2%で暴走（ST突入）
 )
 
-# 黄金騎士12
+# e牙狼12黄金騎士極限
 # LTシステム:
 #   初当たり1400発 → 50%単発 / 50%LTチャレンジ
 #   LTチャレンジ: 50%成功で7000発固定 + LT突入
 #   LT継続中: 25%で7000発+継続 / 51%で1400発+継続 / 24%で1400発+転落
 GARO12 = MachineSpec(
-    name="黄金騎士12",
+    name="e牙狼12黄金騎士極限",
     hit_prob=1 / 437.49,
     st_hit_prob=1.0,           # LT中は1回転で確定当たり
     border_touka=17.2,         # 等価ボーダー
@@ -946,21 +946,21 @@ def play_realtime_session(
 
 
 def compare_machines(rotation_per_1k: float, total_rotations: int = 2000, num_sims: int = 50000):
-    """汎用人型決戦兵器15と汎用人型決戦兵器17を比較"""
+    """Pエヴァ15とeエヴァ17を比較"""
     print("=" * 60)
-    print("汎用人型決戦兵器15 vs 汎用人型決戦兵器17 比較シミュレーション")
+    print("P新世紀エヴァンゲリオン15 未来への咆哮 vs e 新世紀エヴァンゲリオン ～はじまりの記憶～ 比較シミュレーション")
     print(f"条件: 1k{rotation_per_1k}回転 / {total_rotations}回転 / 等価")
     print("=" * 60)
 
-    # 汎用人型決戦兵器15
+    # P新世紀エヴァンゲリオン15
     eva15_over = (rotation_per_1k / EVA15.border_touka - 1) * 100
-    print(f"\n汎用人型決戦兵器15: ボーダー{eva15_over:+.1f}%")
+    print(f"\nP新世紀エヴァンゲリオン15 未来への咆哮: ボーダー{eva15_over:+.1f}%")
     results_15 = run_simulation(EVA15, total_rotations, rotation_per_1k, num_sims)
     print_statistics(results_15, EVA15.name)
 
-    # 汎用人型決戦兵器17
+    # e 新世紀エヴァンゲリオン ～はじまりの記憶～
     eva17_over = (rotation_per_1k / EVA17.border_touka - 1) * 100
-    print(f"\n汎用人型決戦兵器17: ボーダー{eva17_over:+.1f}%")
+    print(f"\ne 新世紀エヴァンゲリオン ～はじまりの記憶～: ボーダー{eva17_over:+.1f}%")
     results_17 = run_simulation(EVA17, total_rotations, rotation_per_1k, num_sims)
     print_statistics(results_17, EVA17.name)
 
@@ -972,17 +972,17 @@ def compare_machines(rotation_per_1k: float, total_rotations: int = 2000, num_si
     print("=" * 60)
     print(f"{'機種':<20} {'勝率':>8} {'平均収支':>12} {'標準偏差':>10}")
     print("-" * 55)
-    print(f"{'汎用人型決戦兵器15':<20} {np.sum(profits_15>0)/len(profits_15)*100:>7.1f}% {np.mean(profits_15):>+11,.0f}円 {np.std(profits_15):>9,.0f}円")
-    print(f"{'汎用人型決戦兵器17':<20} {np.sum(profits_17>0)/len(profits_17)*100:>7.1f}% {np.mean(profits_17):>+11,.0f}円 {np.std(profits_17):>9,.0f}円")
+    print(f"{'Pエヴァ15 未来への咆哮':<20} {np.sum(profits_15>0)/len(profits_15)*100:>7.1f}% {np.mean(profits_15):>+11,.0f}円 {np.std(profits_15):>9,.0f}円")
+    print(f"{'eエヴァ はじまりの記憶':<20} {np.sum(profits_17>0)/len(profits_17)*100:>7.1f}% {np.mean(profits_17):>+11,.0f}円 {np.std(profits_17):>9,.0f}円")
 
 
 def hamari_comparison():
     """ハマり確率の比較"""
     print("=" * 55)
-    print("ハマり確率比較：汎用人型決戦兵器15 vs 汎用人型決戦兵器17")
+    print("ハマり確率比較：Pエヴァ15 未来への咆哮 vs eエヴァ はじまりの記憶")
     print("=" * 55)
 
-    print(f"\n{'回転数':<10} {'汎用人型15':>15} {'汎用人型17':>15} {'倍率':>10}")
+    print(f"\n{'回転数':<10} {'Pエヴァ15':>15} {'eエヴァ17':>15} {'倍率':>10}")
     print("-" * 55)
     
     for rot in [500, 700, 1000, 1200, 1500, 2000]:
@@ -1001,7 +1001,7 @@ def calculate_convergence():
     
     print("=" * 60)
     print("勝率収束に必要な稼働日数")
-    print("条件: 汎用人型決戦兵器15、1k18回転、等価")
+    print("条件: P新世紀エヴァンゲリオン15 未来への咆哮、1k18回転、等価")
     print("=" * 60)
     
     print(f"\n{'目標勝率':<10} {'必要日数':>10} {'必要回転数':>12}")
