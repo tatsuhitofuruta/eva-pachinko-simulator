@@ -202,6 +202,39 @@
             cursor: not-allowed;
             transform: none;
         }
+        .run-actions {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 76px minmax(0, 1fr);
+            gap: 8px;
+            align-items: stretch;
+        }
+        .run-actions select,
+        .run-actions .btn {
+            min-height: 48px;
+        }
+        .run-actions .btn {
+            padding: 10px 8px;
+            font-size: 15px;
+        }
+        .btn-auto {
+            background: linear-gradient(135deg, var(--accent-2), #22a6b3);
+            color: white;
+            box-shadow: 0 12px 32px color-mix(in srgb, var(--accent-2) 22%, transparent);
+        }
+        .btn-auto:hover {
+            transform: scale(1.02);
+            box-shadow: 0 12px 36px color-mix(in srgb, var(--accent-2) 38%, transparent);
+        }
+        .btn-start.is-stop,
+        .btn-auto.is-stop {
+            background: linear-gradient(135deg, rgba(90,98,112,0.96), rgba(37,43,54,0.98));
+            box-shadow: 0 12px 32px rgba(0,0,0,0.18);
+        }
+        .btn-auto:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
         .display {
             background:
                 linear-gradient(145deg, rgba(255,255,255,0.065), transparent 30%),
@@ -1028,6 +1061,14 @@
                 font-size: 16px;
                 border-radius: 7px;
             }
+            .run-actions select,
+            .run-actions .btn {
+                min-height: 40px;
+            }
+            .run-actions .btn {
+                padding: 8px 6px;
+                font-size: 14px;
+            }
             .display {
                 grid-area: display;
                 padding: 18px;
@@ -1367,9 +1408,17 @@
                     </div>
                 </div>
             </div>
-            <button class="btn btn-start" id="startBtn" onclick="startSimulation()">
-                シミュレーション開始
-            </button>
+            <div class="run-actions">
+                <button class="btn btn-start" id="startBtn" onclick="startSimulation()">1日</button>
+                <select id="autoDays" aria-label="自動稼働日数">
+                    <option value="3">3日</option>
+                    <option value="7" selected>7日</option>
+                    <option value="14">14日</option>
+                    <option value="30">30日</option>
+                    <option value="90">90日</option>
+                </select>
+                <button class="btn btn-auto" id="autoRunBtn" onclick="startAutoSimulation()">自動</button>
+            </div>
         </div>
 
         <div class="display">
@@ -1706,6 +1755,7 @@
 
         let isRunning = false;
         let shouldStop = false;
+        let runMode = 'idle';
         let currentTotalSpins = 0;
         let lastRotations = 0;
         let effectTimer = null;
@@ -1901,7 +1951,7 @@
             }
         }
 
-        function addSessionResult(invest, payout) {
+        function addSessionResult(invest, payout, machineKey = document.getElementById('machine').value) {
             // 累計収支更新
             const stats = loadCumulativeStats();
             stats.sessions++;
@@ -1910,7 +1960,7 @@
             saveCumulativeStats(stats);
 
             // セッション履歴にも追加
-            addSessionToHistory(invest, payout);
+            addSessionToHistory(invest, payout, machineKey);
             updateCumulativeDisplay();
             // 最新セッションの月にカレンダーを移動
             moveToLatestSession();
@@ -1966,7 +2016,7 @@
             localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
         }
 
-        function addSessionToHistory(invest, payout) {
+        function addSessionToHistory(invest, payout, machineKey = document.getElementById('machine').value) {
             const history = loadSessionHistory();
             // 仮想日付: 1回の稼働 = 1日として記録
             // 開始日を2026-01-01として、セッション数に応じて日付を進める
@@ -1980,7 +2030,7 @@
                 invest: invest,
                 payout: payout,
                 profit: profit,
-                machine: document.getElementById('machine').value
+                machine: machineKey
             });
             saveSessionHistory(history);
         }
@@ -2406,6 +2456,285 @@
             return 'none';
         }
 
+        function getRunConfig() {
+            const machineKey = document.getElementById('machine').value;
+            return {
+                machineKey,
+                spec: SPECS[machineKey],
+                totalSpins: parseInt(document.getElementById('totalSpins').value),
+                rotation1k: parseInt(document.getElementById('rotation1k').value),
+                speedValue: parseInt(document.getElementById('speed').value)
+            };
+        }
+
+        function setRunControls(mode) {
+            const startBtn = document.getElementById('startBtn');
+            const autoBtn = document.getElementById('autoRunBtn');
+            const autoDays = document.getElementById('autoDays');
+            runMode = mode;
+
+            startBtn.classList.toggle('is-stop', mode === 'single');
+            autoBtn.classList.toggle('is-stop', mode === 'auto');
+            startBtn.disabled = mode === 'auto';
+            autoBtn.disabled = mode === 'single';
+            autoDays.disabled = mode !== 'idle';
+            startBtn.textContent = mode === 'single' ? '停止' : '1日';
+            autoBtn.textContent = mode === 'auto' ? '停止' : '自動';
+        }
+
+        function resetRunControls(startLabel = '1日') {
+            const startBtn = document.getElementById('startBtn');
+            const autoBtn = document.getElementById('autoRunBtn');
+            const autoDays = document.getElementById('autoDays');
+            runMode = 'idle';
+            startBtn.disabled = false;
+            autoBtn.disabled = false;
+            autoDays.disabled = false;
+            startBtn.classList.remove('is-stop');
+            autoBtn.classList.remove('is-stop');
+            startBtn.textContent = startLabel;
+            autoBtn.textContent = '自動';
+        }
+
+        function hideFinalResult() {
+            const finalResult = document.getElementById('finalResult');
+            finalResult.style.display = 'none';
+            finalResult.className = 'final-result';
+        }
+
+        function buildSessionResult(machineKey, rotations, balls, investment, hitCount, maxChain, maxPayout) {
+            const finalBalls = Math.floor(balls);
+            return {
+                machineKey,
+                machineName: SPECS[machineKey].name,
+                rotations,
+                finalBalls,
+                totalInvestment: investment,
+                hitCount,
+                maxChain,
+                maxPayout,
+                finalProfit: finalBalls * 4 - investment
+            };
+        }
+
+        function showFinalResult(result) {
+            updateDisplay(result.rotations, result.finalBalls, result.totalInvestment);
+            document.getElementById('finalSpins').textContent = result.rotations.toLocaleString();
+            document.getElementById('finalHits').textContent = result.hitCount;
+            document.getElementById('finalBalls').textContent = result.finalBalls.toLocaleString();
+            const finalProfitEl = document.getElementById('finalProfit');
+            finalProfitEl.textContent = (result.finalProfit >= 0 ? '+' : '') + result.finalProfit.toLocaleString() + '円';
+            finalProfitEl.className = 'final-stat-value ' + (result.finalProfit >= 0 ? 'profit-plus' : 'profit-minus');
+            const finalResultPanel = document.getElementById('finalResult');
+            finalResultPanel.className = `final-result ${result.finalProfit >= 0 ? 'result-win' : 'result-loss'}`;
+            finalResultPanel.style.display = 'block';
+        }
+
+        function recordSessionOutcome(result) {
+            addSessionResult(result.totalInvestment, result.finalBalls, result.machineKey);
+            updateRankingWithResult(result.finalProfit, result.maxChain, result.maxPayout);
+        }
+
+        function logFinalResult(result) {
+            addLog('─'.repeat(30));
+            addLog(`【最終結果】`);
+            addLog(`総回転数: ${result.rotations.toLocaleString()}回転`);
+            addLog(`初当り: ${result.hitCount}回`);
+            addLog(`持ち玉: ${result.finalBalls.toLocaleString()}発`);
+            addLog(`収支: ${(result.finalProfit >= 0 ? '+' : '')}${result.finalProfit.toLocaleString()}円`);
+        }
+
+        function buyBalls(session, amount, ballsPer1k) {
+            if (session.myBalls >= amount) {
+                session.myBalls -= amount;
+                return;
+            }
+            const shortage = amount - session.myBalls;
+            session.myBalls = 0;
+            const investUnits = Math.ceil(shortage / ballsPer1k);
+            session.totalInvestment += investUnits * 1000;
+            session.myBalls += investUnits * ballsPer1k - shortage;
+        }
+
+        function updateFastRecords(session, chainCount, chainPayout) {
+            session.maxSessionChain = Math.max(session.maxSessionChain, chainCount);
+            session.maxSessionPayout = Math.max(session.maxSessionPayout, chainPayout);
+        }
+
+        function processStandardRushFast(session, spec, firstPayout) {
+            let chainCount = 1;
+            let chainPayout = firstPayout;
+
+            while (true) {
+                let hitInRush = false;
+                if (spec.isLT) {
+                    hitInRush = Math.random() < spec.stContinueRate;
+                } else {
+                    for (let stSpin = 1; stSpin <= spec.stSpins; stSpin++) {
+                        if (Math.random() < spec.stHitProb) {
+                            hitInRush = true;
+                            break;
+                        }
+                    }
+                }
+                if (!hitInRush) break;
+
+                chainCount++;
+                const payout = getDenchuPayout(spec);
+                session.myBalls += payout;
+                chainPayout += payout;
+            }
+
+            if (spec.ltEndPayout > 0) {
+                session.myBalls += spec.ltEndPayout;
+                chainPayout += spec.ltEndPayout;
+            }
+
+            updateFastRecords(session, chainCount, chainPayout);
+        }
+
+        function processResidualFast(session, spec) {
+            if (!spec.zanhoCount) return;
+
+            for (let i = 0; i < spec.zanhoCount; i++) {
+                if (Math.random() < spec.hitProb) {
+                    session.hitCount++;
+                    const payout = getDenchuPayout(spec);
+                    session.myBalls += payout;
+                    updateFastRecords(session, 1, payout);
+                    processStandardRushFast(session, spec, payout);
+                    break;
+                }
+            }
+        }
+
+        function processChallengeRushFast(session, spec, firstPayout) {
+            let chainCount = 1;
+            let chainPayout = firstPayout;
+
+            if (Math.random() >= spec.ltChallengeRate) {
+                session.myBalls += spec.ltEndPayout;
+                chainPayout += spec.ltEndPayout;
+                updateFastRecords(session, chainCount, chainPayout);
+                return;
+            }
+
+            session.myBalls += spec.ltFirstPayout;
+            chainPayout += spec.ltFirstPayout;
+            chainCount++;
+
+            while (Math.random() < spec.stContinueRate) {
+                chainCount++;
+                const payout = getDenchuPayout(spec);
+                session.myBalls += payout;
+                chainPayout += payout;
+            }
+
+            session.myBalls += spec.ltEndPayout;
+            chainPayout += spec.ltEndPayout;
+            updateFastRecords(session, chainCount, chainPayout);
+        }
+
+        function simulateFastSession(machineKey, totalSpins, rotation1k) {
+            const spec = SPECS[machineKey];
+            const ballsPer1k = 250;
+            const ballsPerSpin = ballsPer1k / rotation1k;
+            const ballsPerSpinJitan = ballsPer1k / spec.jitanRotation1k;
+            const session = {
+                rotations: 0,
+                myBalls: 0,
+                totalInvestment: 0,
+                hitCount: 0,
+                maxSessionChain: 0,
+                maxSessionPayout: 0
+            };
+
+            while (session.rotations < totalSpins) {
+                let chargeBousou = false;
+                let figureHit = false;
+
+                while (session.rotations < totalSpins) {
+                    session.rotations++;
+                    buyBalls(session, ballsPerSpin, ballsPer1k);
+                    const normalOutcome = drawNormalOutcome(spec);
+
+                    if (normalOutcome === 'charge') {
+                        session.myBalls += spec.chargePayout;
+                        if (Math.random() < spec.chargeStRate) {
+                            chargeBousou = true;
+                            break;
+                        }
+                    }
+
+                    if (normalOutcome === 'hit') {
+                        figureHit = true;
+                        break;
+                    }
+                }
+
+                if (!chargeBousou && !figureHit) break;
+
+                session.hitCount++;
+                let firstPayout;
+                let stEntered;
+                if (chargeBousou) {
+                    firstPayout = spec.chargePayout;
+                    stEntered = true;
+                } else {
+                    const hesoResult = getHesoResult(spec);
+                    firstPayout = hesoResult.payout;
+                    stEntered = hesoResult.st;
+                    session.myBalls += firstPayout;
+                }
+
+                updateFastRecords(session, 1, firstPayout);
+
+                if (stEntered) {
+                    if (spec.ltChallengeRate > 0) {
+                        processChallengeRushFast(session, spec, firstPayout);
+                    } else {
+                        processStandardRushFast(session, spec, firstPayout);
+                        if (!spec.isLT) {
+                            processResidualFast(session, spec);
+                        }
+                    }
+                    continue;
+                }
+
+                let jitanSpinCount = 0;
+                let hitInJitan = false;
+                while (jitanSpinCount < spec.jitanSpins && session.rotations < totalSpins) {
+                    session.rotations++;
+                    jitanSpinCount++;
+                    buyBalls(session, ballsPerSpinJitan, ballsPer1k);
+                    if (Math.random() < spec.hitProb) {
+                        hitInJitan = true;
+                        break;
+                    }
+                }
+
+                if (hitInJitan) {
+                    session.hitCount++;
+                    const payout = getDenchuPayout(spec);
+                    session.myBalls += payout;
+                    updateFastRecords(session, 1, payout);
+                    processStandardRushFast(session, spec, payout);
+                } else {
+                    processResidualFast(session, spec);
+                }
+            }
+
+            return buildSessionResult(
+                machineKey,
+                session.rotations,
+                session.myBalls,
+                session.totalInvestment,
+                session.hitCount,
+                session.maxSessionChain,
+                session.maxSessionPayout
+            );
+        }
+
         // UI更新
         function updateDisplay(rotations, balls, investment) {
             lastRotations = rotations;
@@ -2506,16 +2835,9 @@
 
             isRunning = true;
             shouldStop = false;
+            setRunControls('single');
 
-            const btn = document.getElementById('startBtn');
-            btn.textContent = '停止';
-            btn.classList.add('is-stop');
-
-            const machineKey = document.getElementById('machine').value;
-            const spec = SPECS[machineKey];
-            const totalSpins = parseInt(document.getElementById('totalSpins').value);
-            const rotation1k = parseInt(document.getElementById('rotation1k').value);
-            const speedValue = parseInt(document.getElementById('speed').value);
+            const { machineKey, spec, totalSpins, rotation1k, speedValue } = getRunConfig();
             currentTotalSpins = totalSpins;
             lastRotations = 0;
             setMachineTheme(machineKey);
@@ -2529,9 +2851,7 @@
             const baseDelay = Math.max(5, 100 - speedValue * 10);
 
             clearLog();
-            const finalResult = document.getElementById('finalResult');
-            finalResult.style.display = 'none';
-            finalResult.className = 'final-result';
+            hideFinalResult();
             addLog(`【${spec.name}】シミュレーション開始`);
             addLog(`条件: 1k${rotation1k}回転 / ${totalSpins}回転`);
             addLog('─'.repeat(30));
@@ -2952,43 +3272,104 @@
 
             // 最終結果
             updateDisplay(rotations, myBalls, totalInvestment);
-            const finalBalls = Math.floor(myBalls);
-            const finalProfit = finalBalls * 4 - totalInvestment;
+            const result = buildSessionResult(
+                machineKey,
+                rotations,
+                myBalls,
+                totalInvestment,
+                hitCount,
+                maxSessionChain,
+                maxSessionPayout
+            );
 
-            addLog('─'.repeat(30));
-            addLog(`【最終結果】`);
-            addLog(`総回転数: ${rotations.toLocaleString()}回転`);
-            addLog(`初当り: ${hitCount}回`);
-            addLog(`持ち玉: ${finalBalls.toLocaleString()}発`);
-            addLog(`収支: ${(finalProfit >= 0 ? '+' : '')}${finalProfit.toLocaleString()}円`);
-
-            // 結果表示
-            document.getElementById('finalSpins').textContent = rotations.toLocaleString();
-            document.getElementById('finalHits').textContent = hitCount;
-            document.getElementById('finalBalls').textContent = finalBalls.toLocaleString();
-            const finalProfitEl = document.getElementById('finalProfit');
-            finalProfitEl.textContent = (finalProfit >= 0 ? '+' : '') + finalProfit.toLocaleString() + '円';
-            finalProfitEl.className = 'final-stat-value ' + (finalProfit >= 0 ? 'profit-plus' : 'profit-minus');
-            const finalResultPanel = document.getElementById('finalResult');
-            finalResultPanel.className = `final-result ${finalProfit >= 0 ? 'result-win' : 'result-loss'}`;
-            finalResultPanel.style.display = 'block';
+            logFinalResult(result);
+            showFinalResult(result);
 
             // 累計収支に追加
-            addSessionResult(totalInvestment, finalBalls);
-
-            // ランキング更新
-            updateRankingWithResult(finalProfit, maxSessionChain, maxSessionPayout);
+            recordSessionOutcome(result);
 
             setState('終了');
             playEffect(
-                finalProfit >= 0 ? 'final-plus' : 'final-minus',
-                finalProfit >= 0 ? '勝利' : '終了',
-                `${finalProfit >= 0 ? '+' : ''}${finalProfit.toLocaleString()}円`,
+                result.finalProfit >= 0 ? 'final-plus' : 'final-minus',
+                result.finalProfit >= 0 ? '勝利' : '終了',
+                `${result.finalProfit >= 0 ? '+' : ''}${result.finalProfit.toLocaleString()}円`,
                 0
             );
-            btn.textContent = 'もう一度';
-            btn.classList.remove('is-stop');
             isRunning = false;
+            shouldStop = false;
+            resetRunControls('もう一度');
+        }
+
+        async function startAutoSimulation() {
+            if (isRunning) {
+                shouldStop = true;
+                return;
+            }
+
+            const { machineKey, spec, totalSpins, rotation1k } = getRunConfig();
+            const days = parseInt(document.getElementById('autoDays').value);
+            isRunning = true;
+            shouldStop = false;
+            setRunControls('auto');
+            currentTotalSpins = totalSpins;
+            lastRotations = 0;
+            setMachineTheme(machineKey);
+            setStageMode('spin', 'AUTO', `0/${days}日`);
+            hideFinalResult();
+            clearLog();
+            addLog(`【${spec.name}】${days}日分 自動稼働開始`);
+            addLog(`条件: 1k${rotation1k}回転 / ${totalSpins}回転 × ${days}日`);
+            addLog('─'.repeat(30));
+
+            const results = [];
+            for (let day = 1; day <= days; day++) {
+                if (shouldStop) break;
+
+                setStageMode('spin', 'AUTO', `${day}/${days}日`);
+                const result = simulateFastSession(machineKey, totalSpins, rotation1k);
+                results.push(result);
+                showFinalResult(result);
+                recordSessionOutcome(result);
+
+                const profitText = (result.finalProfit >= 0 ? '+' : '') + result.finalProfit.toLocaleString() + '円';
+                addLog(
+                    `${String(day).padStart(2, '0')}日目: ${profitText} / 初当り${result.hitCount}回 / ${result.finalBalls.toLocaleString()}発`,
+                    result.finalProfit >= 0 ? 'log-chain' : 'log-st'
+                );
+
+                await sleep(0);
+            }
+
+            const completedDays = results.length;
+            const stopped = shouldStop && completedDays < days;
+            if (completedDays > 0) {
+                const totalProfit = results.reduce((sum, result) => sum + result.finalProfit, 0);
+                const totalInvest = results.reduce((sum, result) => sum + result.totalInvestment, 0);
+                const totalPayout = results.reduce((sum, result) => sum + result.finalBalls, 0);
+                const totalHits = results.reduce((sum, result) => sum + result.hitCount, 0);
+                const averageProfit = Math.round(totalProfit / completedDays);
+
+                addLog('─'.repeat(30));
+                addLog(`【自動稼働結果】${completedDays}/${days}日${stopped ? '（停止）' : ''}`);
+                addLog(`総投資: ${totalInvest.toLocaleString()}円`);
+                addLog(`総出玉: ${totalPayout.toLocaleString()}発`);
+                addLog(`初当り合計: ${totalHits.toLocaleString()}回`);
+                addLog(`合計収支: ${(totalProfit >= 0 ? '+' : '')}${totalProfit.toLocaleString()}円`);
+                addLog(`平均収支/日: ${(averageProfit >= 0 ? '+' : '')}${averageProfit.toLocaleString()}円`);
+                setState('終了');
+                playEffect(
+                    totalProfit >= 0 ? 'final-plus' : 'final-minus',
+                    stopped ? '停止' : 'AUTO完了',
+                    `${totalProfit >= 0 ? '+' : ''}${totalProfit.toLocaleString()}円`,
+                    0
+                );
+            } else {
+                setState('終了');
+            }
+
+            isRunning = false;
+            shouldStop = false;
+            resetRunControls(completedDays > 0 ? 'もう一度' : '1日');
         }
 
         // 速度スライダー
