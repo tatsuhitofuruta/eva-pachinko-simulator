@@ -49,6 +49,13 @@ REQUIRED_MACHINE_KEYS = {
     "ghoul",
 }
 
+REQUIRED_NET_PAYOUT_CALLS = {
+    "netPayout(1500)",
+    "netPayout(3000)",
+    "netPayout(6000)",
+    "netPayout(300)",
+}
+
 
 class StaticPageParser(HTMLParser):
     def __init__(self) -> None:
@@ -145,6 +152,15 @@ def main() -> int:
     }
     if missing_machine_keys:
         errors.append(f"Missing machine definitions: {', '.join(sorted(missing_machine_keys))}")
+
+    missing_net_payout_calls = {
+        call for call in REQUIRED_NET_PAYOUT_CALLS if call not in script_text
+    }
+    if missing_net_payout_calls:
+        errors.append(
+            "Missing net payout conversion calls: "
+            + ", ".join(sorted(missing_net_payout_calls))
+        )
 
     if errors:
         for error in errors:

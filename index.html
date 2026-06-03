@@ -1052,6 +1052,9 @@
     </div>
 
     <script>
+        // 15賞球は入賞1発を差し引き、純増14発/カウントで計算する
+        const netPayout = (grossPayout) => Math.round(grossPayout * 14 / 15);
+
         // 機種スペック
         const SPECS = {
             eva15: {
@@ -1152,21 +1155,21 @@
                 hitProb: 1 / 399.9,
                 stHitProb: 1 / 95.3,       // HYPER喰種RUSH中確率
                 hesoPayouts: [
-                    { prob: 0.50, payout: 1500, st: true },   // 50%: HYPER喰種RUSH突入
-                    { prob: 0.49, payout: 1500, st: false },  // 49%: 通常へ
-                    { prob: 0.01, payout: 300, st: true }     // 1%: 2R + HYPER喰種RUSH突入
+                    { prob: 0.50, payout: netPayout(1500), st: true },   // 1,500個払い出し → 純増1,400発
+                    { prob: 0.49, payout: netPayout(1500), st: false },  // 1,500個払い出し → 純増1,400発
+                    { prob: 0.01, payout: netPayout(300), st: true }     // 300個払い出し → 純増280発
                 ],
                 denchuPayout: 0,
                 denchuPayouts: [
-                    { prob: 0.03, payout: 6000 },  // 3%: 6000発
-                    { prob: 0.97, payout: 3000 }   // 97%: 3000発
+                    { prob: 0.03, payout: netPayout(6000) },  // 6,000個払い出し → 純増5,600発
+                    { prob: 0.97, payout: netPayout(3000) }   // 3,000個払い出し → 純増2,800発
                 ],
                 stSpins: 130,              // HYPER喰種RUSH回転数
                 jitanSpins: 0,
                 jitanRotation1k: 30,
                 zanhoCount: 0,
                 chargeProb: 1 / 399.9,     // 喰種チャージ確率
-                chargePayout: 300,         // 喰種チャージ出玉
+                chargePayout: netPayout(300), // 300個払い出し → 純増280発
                 chargeStRate: 0,           // チャージからRUSH突入なし
                 isLT: true,
                 ltChallengeRate: 0.51,     // HYPER喰種RUSH突入率51%
