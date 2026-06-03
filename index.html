@@ -1409,7 +1409,7 @@
                 </div>
             </div>
             <div class="run-actions">
-                <button class="btn btn-start" id="startBtn" onclick="startSimulation()">1日</button>
+                <button class="btn btn-start" id="startBtn" onclick="startSimulation()">1日実行</button>
                 <select id="autoDays" aria-label="自動稼働日数">
                     <option value="3">3日</option>
                     <option value="7" selected>7日</option>
@@ -1417,7 +1417,7 @@
                     <option value="30">30日</option>
                     <option value="90">90日</option>
                 </select>
-                <button class="btn btn-auto" id="autoRunBtn" onclick="startAutoSimulation()">自動</button>
+                <button class="btn btn-auto" id="autoRunBtn" onclick="startAutoSimulation()">自動実行</button>
             </div>
         </div>
 
@@ -2478,11 +2478,11 @@
             startBtn.disabled = mode === 'auto';
             autoBtn.disabled = mode === 'single';
             autoDays.disabled = mode !== 'idle';
-            startBtn.textContent = mode === 'single' ? '停止' : '1日';
-            autoBtn.textContent = mode === 'auto' ? '停止' : '自動';
+            startBtn.textContent = mode === 'single' ? '停止' : '1日実行';
+            autoBtn.textContent = mode === 'auto' ? '停止' : '自動実行';
         }
 
-        function resetRunControls(startLabel = '1日') {
+        function resetRunControls(startLabel = '1日実行') {
             const startBtn = document.getElementById('startBtn');
             const autoBtn = document.getElementById('autoRunBtn');
             const autoDays = document.getElementById('autoDays');
@@ -2493,7 +2493,7 @@
             startBtn.classList.remove('is-stop');
             autoBtn.classList.remove('is-stop');
             startBtn.textContent = startLabel;
-            autoBtn.textContent = '自動';
+            autoBtn.textContent = '自動実行';
         }
 
         function hideFinalResult() {
@@ -3297,7 +3297,7 @@
             );
             isRunning = false;
             shouldStop = false;
-            resetRunControls('もう一度');
+            resetRunControls();
         }
 
         async function startAutoSimulation() {
@@ -3369,7 +3369,7 @@
 
             isRunning = false;
             shouldStop = false;
-            resetRunControls(completedDays > 0 ? 'もう一度' : '1日');
+            resetRunControls();
         }
 
         // 速度スライダー
