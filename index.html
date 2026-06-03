@@ -3,27 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" href="data:,">
     <title>パチンコシミュレーター</title>
     <style>
+        :root {
+            --accent: #ff6b6b;
+            --accent-2: #4ecdc4;
+            --accent-3: #ffd93d;
+            --panel: rgba(10, 16, 28, 0.88);
+            --panel-strong: #05070d;
+            --line: rgba(255,255,255,0.16);
+        }
+        body[data-machine="garo"],
+        body[data-machine="garo12"] {
+            --accent: #ffd93d;
+            --accent-2: #ff6b6b;
+            --accent-3: #f59e0b;
+        }
+        body[data-machine="ghoul"] {
+            --accent: #e11d48;
+            --accent-2: #8b5cf6;
+            --accent-3: #4ecdc4;
+        }
         * {
             box-sizing: border-box;
         }
         body {
             font-family: 'Hiragino Kaku Gothic ProN', 'メイリオ', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.04) 0 1px, transparent 1px 34px),
+                linear-gradient(90deg, rgba(78,205,196,0.05) 0 1px, transparent 1px 44px),
+                linear-gradient(135deg, #130d1c 0%, #101c2f 42%, #171018 100%);
             color: #eee;
             min-height: 100vh;
             margin: 0;
             padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+        body::before {
+            content: "";
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            background: repeating-linear-gradient(
+                180deg,
+                rgba(255,255,255,0.035) 0,
+                rgba(255,255,255,0.035) 1px,
+                transparent 1px,
+                transparent 5px
+            );
+            mix-blend-mode: screen;
+            opacity: 0.36;
         }
         .container {
-            max-width: 600px;
+            max-width: 720px;
             margin: 0 auto;
+            position: relative;
+            z-index: 1;
         }
         h1 {
             text-align: center;
-            color: #ff6b6b;
-            text-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+            color: var(--accent);
+            text-shadow: 0 0 10px color-mix(in srgb, var(--accent) 55%, transparent);
             margin-bottom: 10px;
         }
         .subtitle {
@@ -76,12 +118,13 @@
             transition: all 0.3s;
         }
         .btn-start {
-            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            background: linear-gradient(135deg, var(--accent), #ee5a5a);
             color: white;
+            box-shadow: 0 12px 32px color-mix(in srgb, var(--accent) 24%, transparent);
         }
         .btn-start:hover {
             transform: scale(1.02);
-            box-shadow: 0 5px 20px rgba(255, 107, 107, 0.4);
+            box-shadow: 0 12px 36px color-mix(in srgb, var(--accent) 42%, transparent);
         }
         .btn-start:disabled {
             background: #555;
@@ -89,10 +132,236 @@
             transform: none;
         }
         .display {
-            background: #000;
+            background:
+                linear-gradient(145deg, rgba(255,255,255,0.08), transparent 30%),
+                var(--panel-strong);
+            border: 1px solid rgba(255,255,255,0.12);
             border-radius: 10px;
             padding: 20px;
             margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                0 24px 60px rgba(0,0,0,0.36),
+                inset 0 0 40px rgba(78,205,196,0.08);
+        }
+        .display.is-impact {
+            animation: displayImpact 520ms ease;
+        }
+        .cut-in {
+            position: absolute;
+            top: 92px;
+            left: -10%;
+            right: -10%;
+            z-index: 9;
+            pointer-events: none;
+            opacity: 0;
+            transform: translateX(-120%) skewX(-10deg);
+            background:
+                linear-gradient(90deg, transparent, rgba(0,0,0,0.72) 16%, rgba(0,0,0,0.82) 84%, transparent),
+                linear-gradient(90deg, transparent, color-mix(in srgb, var(--accent) 54%, transparent), transparent);
+            border-top: 1px solid color-mix(in srgb, var(--accent-3) 55%, transparent);
+            border-bottom: 1px solid color-mix(in srgb, var(--accent-3) 55%, transparent);
+            box-shadow:
+                0 0 30px color-mix(in srgb, var(--accent) 34%, transparent),
+                inset 0 0 20px rgba(255,255,255,0.1);
+            text-align: center;
+            padding: 12px 44px;
+        }
+        .cut-in.show {
+            animation: cutInRush 1120ms cubic-bezier(.18,.84,.22,1) forwards;
+        }
+        .cut-in-title {
+            color: #fff;
+            font-size: 32px;
+            line-height: 1;
+            font-weight: 900;
+            text-shadow:
+                0 0 16px color-mix(in srgb, var(--accent-3) 74%, transparent),
+                0 2px 0 rgba(0,0,0,0.65);
+        }
+        .cut-in-subtitle {
+            color: rgba(255,255,255,0.86);
+            font-size: 14px;
+            margin-top: 5px;
+        }
+        .cut-in-final-minus {
+            filter: grayscale(0.2);
+        }
+        .burst-layer {
+            position: absolute;
+            inset: 0;
+            z-index: 8;
+            overflow: hidden;
+            pointer-events: none;
+        }
+        .burst-piece {
+            position: absolute;
+            left: 50%;
+            top: 36%;
+            width: var(--w, 8px);
+            height: var(--h, 24px);
+            border-radius: 2px;
+            background: var(--piece-color, var(--accent-3));
+            box-shadow: 0 0 14px var(--piece-color, var(--accent-3));
+            opacity: 0;
+            transform: translate(-50%, -50%) rotate(0deg) scale(0.6);
+            animation: burstPiece 920ms ease-out forwards;
+            animation-delay: var(--delay, 0ms);
+        }
+        .machine-stage {
+            min-height: 154px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid color-mix(in srgb, var(--accent) 52%, transparent);
+            border-radius: 8px;
+            margin-bottom: 18px;
+            background:
+                linear-gradient(110deg, rgba(255,255,255,0.08), transparent 24%),
+                linear-gradient(180deg, rgba(255,255,255,0.06), transparent 52%),
+                linear-gradient(135deg, rgba(255,107,107,0.18), rgba(78,205,196,0.12) 48%, rgba(255,217,61,0.12));
+            box-shadow:
+                inset 0 0 36px rgba(0,0,0,0.55),
+                0 0 28px color-mix(in srgb, var(--accent) 20%, transparent);
+        }
+        .machine-stage::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background:
+                repeating-linear-gradient(90deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 14px),
+                repeating-linear-gradient(180deg, transparent 0 11px, rgba(0,0,0,0.16) 11px 12px);
+            opacity: 0.34;
+        }
+        .machine-stage::after {
+            content: "";
+            position: absolute;
+            inset: -40% -20%;
+            background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.32), transparent 58%);
+            transform: translateX(-55%);
+            opacity: 0;
+        }
+        .machine-stage.effect-spin::after,
+        .machine-stage.effect-rush::after,
+        .machine-stage.effect-hit::after,
+        .machine-stage.effect-chain::after {
+            animation: stageSweep 1300ms ease;
+            opacity: 1;
+        }
+        .stage-lights {
+            position: absolute;
+            inset: 10px;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 5px;
+            pointer-events: none;
+        }
+        .stage-lights span {
+            min-height: 6px;
+            border-radius: 2px;
+            background: color-mix(in srgb, var(--accent) 42%, transparent);
+            box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 38%, transparent);
+            animation: lightChase 1200ms linear infinite;
+        }
+        .stage-lights span:nth-child(2n) {
+            background: color-mix(in srgb, var(--accent-2) 42%, transparent);
+            animation-delay: 120ms;
+        }
+        .stage-lights span:nth-child(3n) {
+            background: color-mix(in srgb, var(--accent-3) 42%, transparent);
+            animation-delay: 240ms;
+        }
+        .reel-window {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            display: grid;
+            grid-template-columns: repeat(3, 42px);
+            gap: 8px;
+            transform: translateY(-50%);
+            z-index: 2;
+        }
+        .reel-window span {
+            height: 52px;
+            border: 1px solid rgba(255,255,255,0.18);
+            border-radius: 6px;
+            display: grid;
+            place-items: center;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.14), rgba(255,255,255,0.02)),
+                rgba(0,0,0,0.58);
+            color: #fff;
+            font-size: 26px;
+            font-weight: 800;
+            font-family: 'Courier New', monospace;
+            text-shadow: 0 0 12px rgba(255,255,255,0.7);
+            box-shadow: inset 0 0 16px rgba(0,0,0,0.55);
+        }
+        .machine-stage.effect-spin .reel-window span {
+            animation: reelTick 480ms steps(2, end) infinite;
+        }
+        .effect-copy {
+            position: absolute;
+            inset: 0 18px 0 160px;
+            z-index: 2;
+            display: grid;
+            align-content: center;
+            justify-items: end;
+            text-align: right;
+            gap: 4px;
+        }
+        .effect-title {
+            color: #fff;
+            font-size: 30px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-shadow:
+                0 0 18px color-mix(in srgb, var(--accent) 70%, transparent),
+                0 2px 0 rgba(0,0,0,0.35);
+        }
+        .effect-subtitle {
+            color: rgba(255,255,255,0.78);
+            font-size: 14px;
+            min-height: 20px;
+        }
+        .effect-meter {
+            display: grid;
+            grid-template-columns: repeat(8, 12px);
+            gap: 4px;
+            margin-top: 6px;
+        }
+        .effect-meter span {
+            height: 16px;
+            border-radius: 2px;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.12);
+        }
+        .machine-stage.effect-spin .effect-meter span,
+        .machine-stage.effect-chance .effect-meter span,
+        .machine-stage.effect-rush .effect-meter span,
+        .machine-stage.effect-hit .effect-meter span,
+        .machine-stage.effect-chain .effect-meter span,
+        .machine-stage.effect-charge .effect-meter span,
+        .machine-stage.effect-jitan .effect-meter span,
+        .machine-stage.effect-final-plus .effect-meter span {
+            animation: meterPulse 900ms ease infinite;
+        }
+        .effect-meter span:nth-child(2) { animation-delay: 80ms; }
+        .effect-meter span:nth-child(3) { animation-delay: 160ms; }
+        .effect-meter span:nth-child(4) { animation-delay: 240ms; }
+        .effect-meter span:nth-child(5) { animation-delay: 320ms; }
+        .effect-meter span:nth-child(6) { animation-delay: 400ms; }
+        .effect-meter span:nth-child(7) { animation-delay: 480ms; }
+        .effect-meter span:nth-child(8) { animation-delay: 560ms; }
+        .machine-stage.effect-hit,
+        .machine-stage.effect-chain,
+        .machine-stage.effect-rush,
+        .machine-stage.effect-charge,
+        .machine-stage.effect-final-plus {
+            animation: stageHit 620ms ease;
+        }
+        .machine-stage.effect-final-minus {
+            filter: grayscale(0.35);
         }
         .status-line {
             font-family: 'Courier New', monospace;
@@ -106,6 +375,12 @@
             text-align: center;
             color: #fff;
             text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            transition: color 180ms ease, text-shadow 180ms ease, transform 180ms ease;
+        }
+        .display.is-impact .rotation-display {
+            color: var(--accent-3);
+            text-shadow: 0 0 28px color-mix(in srgb, var(--accent-3) 78%, transparent);
+            transform: scale(1.04);
         }
         .rotation-label {
             text-align: center;
@@ -123,6 +398,21 @@
             padding: 15px;
             border-radius: 8px;
             text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        .stat-box::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(115deg, transparent 30%, rgba(255,255,255,0.18), transparent 66%);
+            transform: translateX(-120%);
+        }
+        .stat-box.stat-pop::after {
+            animation: statSweep 520ms ease;
+        }
+        .stat-box.stat-pop {
+            animation: statPop 520ms ease;
         }
         .stat-value {
             font-size: 24px;
@@ -135,7 +425,10 @@
         .profit-plus { color: #4ecdc4; }
         .profit-minus { color: #ff6b6b; }
         .log {
-            background: rgba(0,0,0,0.5);
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.04), transparent),
+                rgba(0,0,0,0.62);
+            border: 1px solid rgba(255,255,255,0.1);
             border-radius: 10px;
             padding: 15px;
             height: 300px;
@@ -143,23 +436,38 @@
             font-family: 'Courier New', monospace;
             font-size: 13px;
             line-height: 1.6;
+            box-shadow: inset 0 0 26px rgba(0,0,0,0.46);
+        }
+        .log-entry {
+            border-left: 3px solid transparent;
+            padding: 2px 0 2px 8px;
+            margin-bottom: 3px;
+            animation: logPop 220ms ease;
+        }
+        .log-entry:nth-last-child(1) {
+            background: rgba(255,255,255,0.035);
         }
         .log-hit {
             color: #ffd93d;
             font-weight: bold;
+            border-left-color: #ffd93d;
         }
         .log-st {
-            color: #ff6b6b;
+            color: var(--accent);
+            border-left-color: var(--accent);
         }
         .log-chain {
             color: #4ecdc4;
             padding-left: 20px;
+            border-left-color: #4ecdc4;
         }
         .log-jitan {
             color: #a855f7;
+            border-left-color: #a855f7;
         }
         .log-charge {
             color: #f59e0b;
+            border-left-color: #f59e0b;
         }
         .state-normal { color: #4ecdc4; }
         .state-st { color: #ff6b6b; }
@@ -362,15 +670,27 @@
             }
         }
         .final-result {
-            background: linear-gradient(135deg, #2d2d44, #1a1a2e);
-            border: 2px solid #ff6b6b;
+            background:
+                linear-gradient(135deg, rgba(255,255,255,0.08), transparent 36%),
+                linear-gradient(135deg, #2d2d44, #1a1a2e);
+            border: 2px solid var(--accent);
             border-radius: 10px;
             padding: 20px;
             text-align: center;
             display: none;
+            box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+            animation: resultIn 420ms ease;
+        }
+        .final-result.result-win {
+            border-color: #4ecdc4;
+            box-shadow: 0 18px 44px rgba(78,205,196,0.2);
+        }
+        .final-result.result-loss {
+            border-color: #ff6b6b;
+            box-shadow: 0 18px 44px rgba(255,107,107,0.18);
         }
         .final-result h2 {
-            color: #ff6b6b;
+            color: var(--accent);
             margin-bottom: 20px;
         }
         .final-stats {
@@ -388,6 +708,138 @@
         .final-stat-label {
             color: #888;
             font-size: 14px;
+        }
+        @keyframes stageSweep {
+            from { transform: translateX(-55%); }
+            to { transform: translateX(55%); }
+        }
+        @keyframes cutInRush {
+            0% { opacity: 0; transform: translateX(-120%) skewX(-10deg); }
+            18% { opacity: 1; transform: translateX(0) skewX(-10deg); }
+            78% { opacity: 1; transform: translateX(0) skewX(-10deg); }
+            100% { opacity: 0; transform: translateX(120%) skewX(-10deg); }
+        }
+        @keyframes burstPiece {
+            0% {
+                opacity: 0;
+                transform: translate(-50%, -50%) rotate(0deg) scale(0.45);
+            }
+            12% {
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+                transform:
+                    translate(calc(-50% + var(--x)), calc(-50% + var(--y)))
+                    rotate(var(--r))
+                    scale(1);
+            }
+        }
+        @keyframes lightChase {
+            0%, 100% { opacity: 0.18; transform: scaleY(0.7); }
+            50% { opacity: 1; transform: scaleY(1.2); }
+        }
+        @keyframes reelTick {
+            0%, 100% { transform: translateY(0); filter: brightness(1); }
+            50% { transform: translateY(-3px); filter: brightness(1.35); }
+        }
+        @keyframes meterPulse {
+            0%, 100% { background: rgba(255,255,255,0.12); }
+            50% {
+                background: var(--accent-3);
+                box-shadow: 0 0 14px color-mix(in srgb, var(--accent-3) 58%, transparent);
+            }
+        }
+        @keyframes stageHit {
+            0% { transform: scale(1); filter: brightness(1); }
+            38% { transform: scale(1.015); filter: brightness(1.45); }
+            100% { transform: scale(1); filter: brightness(1); }
+        }
+        @keyframes displayImpact {
+            0%, 100% { transform: translateX(0); }
+            20% { transform: translateX(-4px); }
+            42% { transform: translateX(4px); }
+            64% { transform: translateX(-2px); }
+            82% { transform: translateX(2px); }
+        }
+        @keyframes statSweep {
+            from { transform: translateX(-120%); }
+            to { transform: translateX(120%); }
+        }
+        @keyframes statPop {
+            0%, 100% { transform: translateY(0); }
+            45% { transform: translateY(-3px); }
+        }
+        @keyframes logPop {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes resultIn {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 600px) {
+            body {
+                padding: 14px;
+            }
+            h1 {
+                font-size: 28px;
+            }
+            .control-row {
+                flex-direction: column;
+            }
+            .display {
+                padding: 16px;
+            }
+            .cut-in {
+                top: 120px;
+                padding: 10px 28px;
+            }
+            .cut-in-title {
+                font-size: 24px;
+            }
+            .machine-stage {
+                min-height: 184px;
+            }
+            .reel-window {
+                left: 50%;
+                top: 20px;
+                transform: translateX(-50%);
+            }
+            .effect-copy {
+                inset: 82px 14px 16px;
+                justify-items: center;
+                text-align: center;
+            }
+            .effect-title {
+                font-size: 24px;
+            }
+            .stats {
+                grid-template-columns: 1fr;
+            }
+            .stat-value {
+                font-size: 22px;
+            }
+            .log {
+                height: 260px;
+            }
+            .final-stat-value {
+                font-size: 24px;
+            }
+        }
+        @media (max-width: 420px) {
+            .final-stats {
+                grid-template-columns: 1fr;
+            }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *,
+            *::before,
+            *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                scroll-behavior: auto !important;
+            }
         }
     </style>
 </head>
@@ -442,6 +894,31 @@
         </div>
 
         <div class="display">
+            <div class="cut-in" id="cutIn" aria-hidden="true">
+                <div class="cut-in-title" id="cutInTitle">大当り</div>
+                <div class="cut-in-subtitle" id="cutInSubtitle">CHANCE</div>
+            </div>
+            <div class="burst-layer" id="burstLayer" aria-hidden="true"></div>
+            <div class="machine-stage effect-idle" id="machineStage" aria-live="polite">
+                <div class="stage-lights" aria-hidden="true">
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                    <span></span><span></span><span></span><span></span>
+                </div>
+                <div class="reel-window" aria-hidden="true">
+                    <span id="reelLeft">7</span>
+                    <span id="reelCenter">7</span>
+                    <span id="reelRight">7</span>
+                </div>
+                <div class="effect-copy">
+                    <div class="effect-title" id="effectTitle">READY</div>
+                    <div class="effect-subtitle" id="effectSubtitle">待機中</div>
+                    <div class="effect-meter" aria-hidden="true">
+                        <span></span><span></span><span></span><span></span>
+                        <span></span><span></span><span></span><span></span>
+                    </div>
+                </div>
+            </div>
             <div class="rotation-display" id="rotationDisplay">0</div>
             <div class="rotation-label">回転</div>
             <div class="stats">
@@ -723,6 +1200,144 @@
 
         let isRunning = false;
         let shouldStop = false;
+        let currentTotalSpins = 0;
+        let lastRotations = 0;
+        let effectTimer = null;
+        let cutInTimer = null;
+        let currentStageMode = {
+            type: 'idle',
+            title: 'READY',
+            subtitle: '待機中'
+        };
+
+        function getProgressText() {
+            if (!currentTotalSpins) return '待機中';
+            return `${lastRotations.toLocaleString()} / ${currentTotalSpins.toLocaleString()}回転`;
+        }
+
+        function setMachineTheme(machineKey) {
+            document.body.dataset.machine = machineKey;
+        }
+
+        function setStage(type, title, subtitle = '') {
+            const stage = document.getElementById('machineStage');
+            const titleEl = document.getElementById('effectTitle');
+            const subtitleEl = document.getElementById('effectSubtitle');
+
+            stage.dataset.effect = type;
+            stage.className = `machine-stage effect-${type}`;
+            titleEl.textContent = title;
+            subtitleEl.textContent = subtitle;
+        }
+
+        function restoreStageMode() {
+            const subtitle = currentStageMode.type === 'spin'
+                ? getProgressText()
+                : currentStageMode.subtitle;
+            setStage(currentStageMode.type, currentStageMode.title, subtitle);
+        }
+
+        function setStageMode(type, title, subtitle = '') {
+            currentStageMode = { type, title, subtitle };
+            restoreStageMode();
+        }
+
+        function pulseDisplay() {
+            const display = document.querySelector('.display');
+            display.classList.remove('is-impact');
+            void display.offsetWidth;
+            display.classList.add('is-impact');
+        }
+
+        function flashStat(elementId) {
+            const statBox = document.getElementById(elementId)?.closest('.stat-box');
+            if (!statBox) return;
+            statBox.classList.remove('stat-pop');
+            void statBox.offsetWidth;
+            statBox.classList.add('stat-pop');
+        }
+
+        function showCutIn(title, subtitle = '', type = 'hit') {
+            const cutIn = document.getElementById('cutIn');
+            document.getElementById('cutInTitle').textContent = title;
+            document.getElementById('cutInSubtitle').textContent = subtitle;
+
+            clearTimeout(cutInTimer);
+            cutIn.className = `cut-in cut-in-${type}`;
+            void cutIn.offsetWidth;
+            cutIn.classList.add('show');
+            cutInTimer = setTimeout(() => {
+                cutIn.classList.remove('show');
+            }, 1180);
+        }
+
+        function spawnBurst(type = 'hit', count = 22) {
+            const layer = document.getElementById('burstLayer');
+            const palette = type === 'final-minus'
+                ? ['#ff6b6b', '#a855f7', '#ffffff']
+                : ['#ffd93d', '#ff6b6b', '#4ecdc4', '#ffffff'];
+
+            for (let i = 0; i < count; i++) {
+                const piece = document.createElement('span');
+                const angle = (Math.PI * 2 * i / count) + Math.random() * 0.55;
+                const distance = 92 + Math.random() * 170;
+                const x = Math.cos(angle) * distance;
+                const y = Math.sin(angle) * distance;
+                const color = palette[i % palette.length];
+
+                piece.className = 'burst-piece';
+                piece.style.setProperty('--x', `${x.toFixed(1)}px`);
+                piece.style.setProperty('--y', `${y.toFixed(1)}px`);
+                piece.style.setProperty('--r', `${Math.floor(Math.random() * 420 - 210)}deg`);
+                piece.style.setProperty('--delay', `${Math.floor(Math.random() * 80)}ms`);
+                piece.style.setProperty('--w', `${6 + Math.floor(Math.random() * 8)}px`);
+                piece.style.setProperty('--h', `${16 + Math.floor(Math.random() * 26)}px`);
+                piece.style.setProperty('--piece-color', color);
+                layer.appendChild(piece);
+                setTimeout(() => piece.remove(), 1100);
+            }
+        }
+
+        function dramatizeEffect(type, title, subtitle) {
+            const chainNumber = type === 'chain' ? parseInt(title, 10) : 0;
+            const shouldCutIn = ['hit', 'rush', 'charge', 'final-plus', 'final-minus'].includes(type)
+                || (type === 'chain' && chainNumber >= 5);
+
+            if (!shouldCutIn) return;
+
+            showCutIn(title, subtitle, type);
+            const burstCount = type === 'chain' ? 16 : type === 'final-minus' ? 10 : 28;
+            spawnBurst(type, burstCount);
+        }
+
+        function playEffect(type, title, subtitle = '', duration = 1100) {
+            clearTimeout(effectTimer);
+            setStage(type, title, subtitle);
+            dramatizeEffect(type, title, subtitle);
+            pulseDisplay();
+            if (duration > 0) {
+                effectTimer = setTimeout(() => {
+                    if (isRunning) {
+                        restoreStageMode();
+                    }
+                }, duration);
+            }
+        }
+
+        function updateReels(rotations) {
+            const digits = String(rotations % 1000).padStart(3, '0');
+            document.getElementById('reelLeft').textContent = digits[0];
+            document.getElementById('reelCenter').textContent = digits[1];
+            document.getElementById('reelRight').textContent = digits[2];
+        }
+
+        function updateStageProgress() {
+            const stage = document.getElementById('machineStage');
+            updateReels(lastRotations);
+            if (stage.dataset.effect === 'spin') {
+                document.getElementById('effectSubtitle').textContent = getProgressText();
+            }
+        }
 
         // ========================================
         // 累計収支管理（localStorage）
@@ -1110,6 +1725,7 @@
 
         // UI更新
         function updateDisplay(rotations, balls, investment) {
+            lastRotations = rotations;
             document.getElementById('rotationDisplay').textContent = rotations.toLocaleString();
             document.getElementById('ballsDisplay').textContent = Math.floor(balls).toLocaleString();
             document.getElementById('investDisplay').textContent = investment.toLocaleString();
@@ -1118,32 +1734,61 @@
             const profitEl = document.getElementById('profitDisplay');
             profitEl.textContent = (profit >= 0 ? '+' : '') + profit.toLocaleString();
             profitEl.className = 'stat-value ' + (profit >= 0 ? 'profit-plus' : 'profit-minus');
+            updateStageProgress();
         }
 
         function setState(state, extra = '') {
             const el = document.getElementById('stateDisplay');
             let text = state;
             let className = 'state-normal';
+            let stageType = 'idle';
+            let stageTitle = state;
+            let stageSubtitle = extra;
 
             if (state === '通常') {
                 className = 'state-normal';
+                stageType = 'spin';
+                stageTitle = '通常回転';
+                stageSubtitle = getProgressText();
             } else if (state === 'ST' || state === 'LT') {
                 className = 'state-st';
                 text = `${state} ${extra}`;
+                stageType = 'rush';
+                stageTitle = state;
+                stageSubtitle = extra;
             } else if (state === '時短') {
                 className = 'state-jitan';
                 text = `時短 ${extra}`;
+                stageType = 'jitan';
+                stageTitle = '時短';
+                stageSubtitle = extra;
+            } else if (state.includes('バトル') || state.includes('チャレンジ')) {
+                className = 'state-jitan';
+                stageType = 'chance';
+                stageTitle = state;
+                stageSubtitle = extra || '突入判定';
+            } else if (state.includes('RUSH') || state.includes('モード') || state.includes('チャンス')) {
+                className = 'state-st';
+                stageType = 'rush';
+                stageTitle = state;
+                stageSubtitle = extra;
+            } else if (state === '終了') {
+                className = 'state-normal';
+                stageType = 'idle';
+                stageTitle = 'FINISH';
+                stageSubtitle = '結果表示';
             }
 
             el.textContent = text;
             el.className = className;
+            setStageMode(stageType, stageTitle, stageSubtitle);
         }
 
         function addLog(message, className = '') {
             const log = document.getElementById('log');
             const div = document.createElement('div');
             div.textContent = message;
-            if (className) div.className = className;
+            div.className = className ? `log-entry ${className}` : 'log-entry';
             log.appendChild(div);
             log.scrollTop = log.scrollHeight;
         }
@@ -1187,6 +1832,10 @@
             const totalSpins = parseInt(document.getElementById('totalSpins').value);
             const rotation1k = parseInt(document.getElementById('rotation1k').value);
             const speedValue = parseInt(document.getElementById('speed').value);
+            currentTotalSpins = totalSpins;
+            lastRotations = 0;
+            setMachineTheme(machineKey);
+            setStageMode('spin', '通常回転', getProgressText());
 
             const ballsPer1k = 250;
             const ballsPerSpin = ballsPer1k / rotation1k;
@@ -1196,7 +1845,9 @@
             const baseDelay = Math.max(5, 100 - speedValue * 10);
 
             clearLog();
-            document.getElementById('finalResult').style.display = 'none';
+            const finalResult = document.getElementById('finalResult');
+            finalResult.style.display = 'none';
+            finalResult.className = 'final-result';
             addLog(`【${spec.name}】シミュレーション開始`);
             addLog(`条件: 1k${rotation1k}回転 / ${totalSpins}回転`);
             addLog('─'.repeat(30));
@@ -1240,9 +1891,12 @@
                     if (spec.chargeProb > 0 && Math.random() < spec.chargeProb) {
                         myBalls += spec.chargePayout;
                         addLog(`⚡ チャージ！ +${spec.chargePayout}発`, 'log-charge');
+                        playEffect('charge', 'CHARGE', `+${spec.chargePayout.toLocaleString()}発`, 900);
+                        flashStat('ballsDisplay');
                         if (Math.random() < spec.chargeStRate) {
                             chargeBousou = true;
                             addLog(`🔥🔥🔥 暴走モード！${getRushName(machineKey)}突入！ 🔥🔥🔥`, 'log-charge');
+                            playEffect('rush', '暴走', `${getRushName(machineKey)}突入`, 1200);
                             await sleep(baseDelay * 5);
                             break;
                         }
@@ -1265,13 +1919,17 @@
                     firstPayout = spec.chargePayout;
                     stEntered = true;
                     addLog(`🎰【当たり${hitCount}】暴走から${getRushName(machineKey)}突入！`, 'log-hit');
+                    playEffect('hit', '大当り', getRushName(machineKey), 1300);
                 } else {
                     const result = getHesoResult(spec);
                     firstPayout = result.payout;
                     stEntered = result.st;
                     myBalls += firstPayout;
                     addLog(`🎰【当たり${hitCount}】${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 'log-hit');
+                    playEffect('hit', '大当り', `${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 1300);
                 }
+                flashStat('ballsDisplay');
+                flashStat('profitDisplay');
 
                 await sleep(baseDelay * 3);
 
@@ -1288,6 +1946,7 @@
                         const rushName = getRushName(machineKey);
                         addLog(`>>> ${challengeName}！`, 'log-st');
                         setState(challengeName);
+                        playEffect('chance', challengeName, '突入判定', 1200);
                         await sleep(baseDelay * 5);
 
                         // チャレンジ判定
@@ -1297,16 +1956,20 @@
                             chainPayout += spec.ltEndPayout;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  ${challengeName}敗北... +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
+                            playEffect('chance', '敗北', `+${spec.ltEndPayout.toLocaleString()}発`, 1000);
+                            flashStat('ballsDisplay');
                             await sleep(baseDelay * 3);
                             addLog(`終了 → 1連 計${chainPayout.toLocaleString()}発`, 'log-st');
                         } else {
                             // チャレンジ成功 → RUSH突入
                             addLog(`🔥 ${challengeName}勝利！ ${rushName}突入！`, 'log-st');
+                            playEffect('rush', rushName, '突入', 1300);
                             myBalls += spec.ltFirstPayout;
                             chainPayout += spec.ltFirstPayout;
                             chainCount++;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  ${rushName}突入: +${spec.ltFirstPayout.toLocaleString()}発`, 'log-chain');
+                            flashStat('ballsDisplay');
                             await sleep(baseDelay * 4);
                             setState(rushName);
 
@@ -1318,6 +1981,8 @@
                                 chainPayout += payout;
                                 updateDisplay(rotations, myBalls, totalInvestment);
                                 addLog(`  ${chainCount}連目: ${rushName}継続 +${payout.toLocaleString()}発`, 'log-chain');
+                                playEffect('chain', `${chainCount}連`, `+${payout.toLocaleString()}発`, 800);
+                                flashStat('ballsDisplay');
                                 await sleep(baseDelay * 4);
                             }
 
@@ -1326,6 +1991,7 @@
                             chainPayout += spec.ltEndPayout;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  ${rushName}転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
+                            flashStat('ballsDisplay');
                             await sleep(baseDelay * 2);
                             addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
                             maxSessionChain = Math.max(maxSessionChain, chainCount);
@@ -1335,6 +2001,7 @@
                         const rushName = getRushName(machineKey);
                         addLog(`>>> ${rushName}突入！（${spec.stSpins}回転）`, 'log-st');
                         setState(stLabel, `${spec.stSpins}回転`);
+                        playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
                         await sleep(baseDelay * 5);
 
                         let stSpin = 1;
@@ -1360,6 +2027,8 @@
                             updateDisplay(rotations, myBalls, totalInvestment);
                             const spinText = spec.isLT ? `${stLabel}1回転` : `ST${stSpin}回転`;
                             addLog(`  ${chainCount}連目: ${spinText} +${payout.toLocaleString()}発`, 'log-chain');
+                            playEffect('chain', `${chainCount}連`, `+${payout.toLocaleString()}発`, 800);
+                            flashStat('ballsDisplay');
                             await sleep(baseDelay * 4);
                         }
 
@@ -1369,6 +2038,7 @@
                             chainPayout += spec.ltEndPayout;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  LT転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
+                            flashStat('ballsDisplay');
                             await sleep(baseDelay * 2);
                         }
 
@@ -1378,6 +2048,7 @@
                         // インパクトモード終了後の残保留チェック（eva15向け）
                         if (!spec.isLT && spec.zanhoCount > 0) {
                             addLog(`残保留チェック（${spec.zanhoCount}個）...`, 'log-jitan');
+                            playEffect('chance', '残保留', `${spec.zanhoCount}個チェック`, 900);
                             await sleep(baseDelay * 2);
 
                             let zanhoHit = false;
@@ -1388,12 +2059,15 @@
                                     const payout = getDenchuPayout(spec);
                                     myBalls += payout;
                                     addLog(`✨ 残保留${i + 1}個目で当たり！ +${payout.toLocaleString()}発`, 'log-hit');
+                                    playEffect('hit', '残保留当り', `+${payout.toLocaleString()}発`, 1200);
                                     updateDisplay(rotations, myBalls, totalInvestment);
+                                    flashStat('ballsDisplay');
 
                                     // 再度インパクトモードへ
                                     const rushName = getRushName(machineKey);
                                     addLog(`>>> ${rushName}再突入！（${spec.stSpins}回転）`, 'log-st');
                                     setState(rushName, `${spec.stSpins}回転`);
+                                    playEffect('rush', rushName, '再突入', 1200);
                                     await sleep(baseDelay * 5);
 
                                     chainCount = 1;
@@ -1417,6 +2091,8 @@
                                         chainPayout += p;
                                         updateDisplay(rotations, myBalls, totalInvestment);
                                         addLog(`  ${chainCount}連目: ST${stSpin2}回転 +${p.toLocaleString()}発`, 'log-chain');
+                                        playEffect('chain', `${chainCount}連`, `+${p.toLocaleString()}発`, 800);
+                                        flashStat('ballsDisplay');
                                         await sleep(baseDelay * 4);
                                     }
 
@@ -1435,6 +2111,7 @@
                     // 時短処理
                     addLog(`→ 単発終了（時短${spec.jitanSpins}回転へ）`, 'log-jitan');
                     setState('時短', `0/${spec.jitanSpins}`);
+                    playEffect('jitan', '時短', `${spec.jitanSpins}回転`, 900);
                     await sleep(baseDelay * 2);
 
                     let jitanSpinCount = 0;
@@ -1463,13 +2140,16 @@
                         const payout = getDenchuPayout(spec);
                         myBalls += payout;
                         addLog(`🎰【当たり${hitCount}】時短${jitanSpinCount}回転目で引き戻し！ +${payout.toLocaleString()}発`, 'log-hit');
+                        playEffect('hit', '引き戻し', `時短${jitanSpinCount}回転目`, 1200);
                         updateDisplay(rotations, myBalls, totalInvestment);
+                        flashStat('ballsDisplay');
                         await sleep(baseDelay * 3);
 
                         // RUSH突入
                         const rushName = getRushName(machineKey);
                         addLog(`>>> ${rushName}突入！（${spec.stSpins}回転）`, 'log-st');
                         setState(rushName, `${spec.stSpins}回転`);
+                        playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
                         await sleep(baseDelay * 5);
 
                         let chainCount = 1;
@@ -1494,6 +2174,8 @@
                             chainPayout += p;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  ${chainCount}連目: ST${stSpin}回転 +${p.toLocaleString()}発`, 'log-chain');
+                            playEffect('chain', `${chainCount}連`, `+${p.toLocaleString()}発`, 800);
+                            flashStat('ballsDisplay');
                             await sleep(baseDelay * 4);
                         }
 
@@ -1503,6 +2185,7 @@
                         // 残保留チェック
                         if (spec.zanhoCount > 0) {
                             addLog(`時短終了... 残保留チェック（${spec.zanhoCount}個）`, 'log-jitan');
+                            playEffect('chance', '残保留', `${spec.zanhoCount}個チェック`, 900);
                             await sleep(baseDelay * 2);
 
                             let zanhoHit = false;
@@ -1513,12 +2196,15 @@
                                     const payout = getDenchuPayout(spec);
                                     myBalls += payout;
                                     addLog(`✨ 残保留${i + 1}個目で当たり！ +${payout.toLocaleString()}発`, 'log-hit');
+                                    playEffect('hit', '残保留当り', `+${payout.toLocaleString()}発`, 1200);
                                     updateDisplay(rotations, myBalls, totalInvestment);
+                                    flashStat('ballsDisplay');
 
                                     // RUSH処理
                                     const rushName = getRushName(machineKey);
                                     addLog(`>>> ${rushName}突入！（${spec.stSpins}回転）`, 'log-st');
                                     setState(rushName, `${spec.stSpins}回転`);
+                                    playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
                                     await sleep(baseDelay * 5);
 
                                     let chainCount = 1;
@@ -1543,6 +2229,8 @@
                                         chainPayout += p;
                                         updateDisplay(rotations, myBalls, totalInvestment);
                                         addLog(`  ${chainCount}連目: ST${stSpin}回転 +${p.toLocaleString()}発`, 'log-chain');
+                                        playEffect('chain', `${chainCount}連`, `+${p.toLocaleString()}発`, 800);
+                                        flashStat('ballsDisplay');
                                         await sleep(baseDelay * 4);
                                     }
 
@@ -1582,7 +2270,9 @@
             const finalProfitEl = document.getElementById('finalProfit');
             finalProfitEl.textContent = (finalProfit >= 0 ? '+' : '') + finalProfit.toLocaleString() + '円';
             finalProfitEl.className = 'final-stat-value ' + (finalProfit >= 0 ? 'profit-plus' : 'profit-minus');
-            document.getElementById('finalResult').style.display = 'block';
+            const finalResultPanel = document.getElementById('finalResult');
+            finalResultPanel.className = `final-result ${finalProfit >= 0 ? 'result-win' : 'result-loss'}`;
+            finalResultPanel.style.display = 'block';
 
             // 累計収支に追加
             addSessionResult(totalInvestment, Math.floor(myBalls));
@@ -1591,6 +2281,12 @@
             updateRankingWithResult(finalProfit, maxSessionChain, Math.floor(myBalls));
 
             setState('終了');
+            playEffect(
+                finalProfit >= 0 ? 'final-plus' : 'final-minus',
+                finalProfit >= 0 ? '勝利' : '終了',
+                `${finalProfit >= 0 ? '+' : ''}${finalProfit.toLocaleString()}円`,
+                0
+            );
             btn.textContent = 'もう一度';
             btn.style.background = 'linear-gradient(135deg, #ff6b6b, #ee5a5a)';
             isRunning = false;
@@ -1600,6 +2296,16 @@
         document.getElementById('speed').addEventListener('input', (e) => {
             document.getElementById('speedLabel').textContent = e.target.value;
         });
+
+        document.getElementById('machine').addEventListener('change', (e) => {
+            const machineKey = e.target.value;
+            setMachineTheme(machineKey);
+            setStageMode('idle', 'READY', SPECS[machineKey].name);
+        });
+
+        setMachineTheme(document.getElementById('machine').value);
+        setStageMode('idle', 'READY', '待機中');
+        updateReels(0);
     </script>
 </body>
 </html>
