@@ -30,6 +30,7 @@ env/
 .idea/
 .vscode/
 .playwright-cli/
+.playwright-mcp/
 *.swp
 *.swo
 
