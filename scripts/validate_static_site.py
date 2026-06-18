@@ -30,6 +30,13 @@ REQUIRED_IDS = {
     "calendarGrid",
     "profitChart",
     "profitChartPanel",
+    "chartCurrent",
+    "chartPeak",
+    "chartLow",
+    "chartDeviation",
+    "deviationExpected",
+    "deviationUpswingList",
+    "deviationDownswingList",
     "finalResult",
 }
 
@@ -44,6 +51,13 @@ REQUIRED_FUNCTIONS = {
     "addSessionResult",
     "renderCalendar",
     "renderProfitChart",
+    "expectedProfitYen",
+    "updateDeviationDisplay",
+    "currentScopeKey",
+    "loadAllData",
+    "normalizeScopeData",
+    "simulateFastSession",
+    "recordSessionOutcome",
 }
 
 REQUIRED_MACHINE_KEYS = {
@@ -52,6 +66,9 @@ REQUIRED_MACHINE_KEYS = {
     "garo",
     "garo12",
     "ghoul",
+    "oumi5",
+    "hokuto4",
+    "rezero2",
 }
 
 REQUIRED_NET_PAYOUT_CALLS = {
@@ -186,6 +203,19 @@ def main() -> int:
 
     if "toISOString().split('T')[0]" in script_text or 'toISOString().split("T")[0]' in script_text:
         errors.append("Virtual dates should use local date formatting, not UTC toISOString")
+
+    if "const DATA_KEY = 'pachinko_data_v2'" not in script_text:
+        errors.append("Scoped storage should use the canonical pachinko_data_v2 key")
+
+    for old_key in ("pachinko_cumulative_stats", "pachinko_session_history", "pachinko_ranking_stats"):
+        if old_key not in script_text:
+            errors.append(f"Missing reset handling for legacy storage key: {old_key}")
+
+    if "rankBestUpswing" not in script_text or "rankWorstDownswing" not in script_text:
+        errors.append("Deviation record ids should be wired into the ranking display")
+
+    if "cumulativeExpected" not in script_text:
+        errors.append("Profit chart should include the expected-profit reference series")
 
     garo_block = extract_js_object_block(script_text, "garo")
     if not re.search(r"\bltChallengeRate\s*:\s*0\s*,", garo_block):

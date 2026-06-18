@@ -103,6 +103,7 @@ ruff check .
 python -m compileall eva_simulator.py tests scripts
 python -m unittest discover -s tests -v
 python scripts/validate_static_site.py
+node verify.js
 ```
 
 機種スペックを変更する場合は、確率・出玉振り分け・モード名の参照元をPRに記載してください。

@@ -1034,7 +1034,7 @@
         }
         .chart-metrics {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
             gap: 8px;
             margin-top: 9px;
         }
@@ -1061,6 +1061,83 @@
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+        .deviation-panel {
+            margin-top: 12px;
+            padding-top: 10px;
+            border-top: 1px dashed var(--line);
+        }
+        .deviation-panel summary {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            cursor: pointer;
+            list-style: none;
+            color: var(--text);
+            font-weight: 700;
+            font-size: 13px;
+            letter-spacing: 0.06em;
+        }
+        .deviation-panel summary::-webkit-details-marker {
+            display: none;
+        }
+        .deviation-panel summary::before {
+            content: "▸";
+            color: var(--accent);
+            font-family: var(--font-mono);
+            margin-right: 2px;
+        }
+        .deviation-panel[open] summary::before {
+            content: "▾";
+        }
+        .deviation-expected {
+            margin-left: auto;
+            color: var(--muted-2);
+            font-family: var(--font-mono);
+            font-size: 10px;
+            font-weight: 400;
+            letter-spacing: 0.06em;
+            white-space: nowrap;
+        }
+        .deviation-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 9px;
+            margin-top: 9px;
+        }
+        .deviation-list {
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: rgba(0,0,0,0.28);
+            padding: 8px;
+            min-width: 0;
+        }
+        .deviation-heading {
+            color: var(--muted-2);
+            font-size: 9.5px;
+            letter-spacing: 0.08em;
+            margin-bottom: 6px;
+        }
+        .deviation-row,
+        .deviation-empty {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            font-family: var(--font-mono);
+            font-size: 11px;
+            line-height: 1.65;
+            white-space: nowrap;
+        }
+        .deviation-row.plus {
+            color: var(--success);
+        }
+        .deviation-row.minus {
+            color: var(--danger);
+        }
+        .deviation-empty {
+            color: var(--muted-2);
+            letter-spacing: 0.1em;
         }
 
         /* ===== final result ===== */
@@ -1508,6 +1585,40 @@
             .stats-panels {
                 flex-direction: column;
             }
+            .run-actions {
+                grid-template-columns: 1fr;
+            }
+            .cumulative-header,
+            .calendar-header {
+                flex-wrap: wrap;
+            }
+            .cumulative-header .scope-badge,
+            .calendar-header .scope-badge {
+                white-space: normal;
+                text-align: center;
+            }
+            .calendar-header .scope-badge {
+                flex: 1 1 100%;
+                order: 3;
+            }
+            .calendar-header .btn-reset {
+                flex: 1 1 100%;
+                order: 4;
+            }
+            .chart-metrics {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .deviation-panel summary {
+                flex-wrap: wrap;
+            }
+            .deviation-expected {
+                flex: 1 1 100%;
+                margin-left: 18px;
+                white-space: normal;
+            }
+            .deviation-grid {
+                grid-template-columns: 1fr;
+            }
             .cumulative-grid, .ranking-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
@@ -1559,6 +1670,9 @@
                         <option value="garo">CR牙狼XX</option>
                         <option value="garo12">e牙狼12黄金騎士極限</option>
                         <option value="ghoul">e 東京喰種</option>
+                        <option value="oumi5">P大海物語5</option>
+                        <option value="hokuto4">P真・北斗無双 第4章</option>
+                        <option value="rezero2">e Re:ゼロから始める異世界生活 season2</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -1711,6 +1825,14 @@
                         <div class="ranking-label">一撃最高出玉</div>
                         <div class="ranking-value" id="rankMaxPayout">---</div>
                     </div>
+                    <div class="ranking-item best">
+                        <div class="ranking-label">最大上振れ</div>
+                        <div class="ranking-value" id="rankBestUpswing">---</div>
+                    </div>
+                    <div class="ranking-item worst">
+                        <div class="ranking-label">最大下振れ</div>
+                        <div class="ranking-value" id="rankWorstDownswing">---</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1760,8 +1882,28 @@
                         <span>最低</span>
                         <strong id="chartLow">±0円</strong>
                     </div>
+                    <div class="chart-metric">
+                        <span>期待差</span>
+                        <strong id="chartDeviation">±0円</strong>
+                    </div>
                 </div>
             </div>
+            <details class="deviation-panel" id="deviationPanel">
+                <summary>
+                    <span class="panel-title">乖離ランキング<small>DEVIATION</small></span>
+                    <span class="deviation-expected" id="deviationExpected">期待値/日: ---</span>
+                </summary>
+                <div class="deviation-grid">
+                    <div class="deviation-list">
+                        <div class="deviation-heading">上振れ TOP5</div>
+                        <div id="deviationUpswingList"></div>
+                    </div>
+                    <div class="deviation-list">
+                        <div class="deviation-heading">下振れ WORST5</div>
+                        <div id="deviationDownswingList"></div>
+                    </div>
+                </div>
+            </details>
         </div>
 
         <div class="final-result" id="finalResult">
@@ -1917,6 +2059,78 @@
                 ltFirstPayout: 0,          // RUSH突入時追加出玉なし
                 ltEndPayout: 0,            // RUSH転落時追加出玉なし
                 stContinueRate: 0.75       // HYPER喰種RUSH継続率75%
+            },
+            oumi5: {
+                name: "P大海物語5",
+                shortName: "大海5",
+                hitProb: 1 / 319.6,
+                stHitProb: 1.0,
+                hesoPayouts: [
+                    { prob: 0.60, payout: netPayout(1500), st: true },
+                    { prob: 0.40, payout: netPayout(1500), st: false }
+                ],
+                denchuPayouts: [
+                    { prob: 1.0, payout: netPayout(1500) }
+                ],
+                stSpins: 1,
+                jitanSpins: 100,
+                jitanRotation1k: 30,
+                zanhoCount: 0,
+                chargeProb: 0, chargePayout: 0, chargeStRate: 0,
+                isLT: true,
+                ltChallengeRate: 0,
+                ltFirstPayout: 0,
+                ltEndPayout: netPayout(1500),
+                stContinueRate: 0.60
+            },
+            hokuto4: {
+                name: "P真・北斗無双 第4章",
+                shortName: "北斗無双4",
+                hitProb: 1 / 319.7,
+                stHitProb: 1 / 70.7,
+                hesoPayouts: [
+                    { prob: 0.05, payout: netPayout(3000), st: true, renzoku: true },
+                    { prob: 0.46, payout: netPayout(900), st: true },
+                    { prob: 0.49, payout: netPayout(900), st: false }
+                ],
+                denchuPayouts: [
+                    { prob: 0.26, payout: netPayout(3000), renzoku: true },
+                    { prob: 0.54, payout: netPayout(1500) },
+                    { prob: 0.20, payout: 0 }
+                ],
+                stSpins: 100,
+                jitanSpins: 100,
+                jitanHitProb: 1 / 288.7,
+                jitanRotation1k: 30,
+                zanhoCount: 0,
+                chargeProb: 0, chargePayout: 0, chargeStRate: 0,
+                renzokuRate: 0.33,
+                renzokuPayout: netPayout(1500),
+                isLT: false,
+                ltChallengeRate: 0, ltFirstPayout: 0, ltEndPayout: 0,
+                stContinueRate: 0.759
+            },
+            rezero2: {
+                name: "e Re:ゼロから始める異世界生活 season2",
+                shortName: "リゼロ2",
+                hitProb: 1 / 349.9,
+                stHitProb: 1 / 99.9,
+                hesoPayouts: [
+                    { prob: 0.55, payout: netPayout(3000), st: true },
+                    { prob: 0.45, payout: netPayout(1500), st: false }
+                ],
+                denchuPayouts: [
+                    { prob: 0.25, payout: netPayout(3000) },
+                    { prob: 0.75, payout: netPayout(1500) }
+                ],
+                stSpins: 145,
+                jitanSpins: 0,
+                jitanRotation1k: 30,
+                zanhoCount: 0,
+                chargeProb: 0, chargePayout: 0, chargeStRate: 0,
+                isLT: false,
+                ltChallengeRate: 0, ltFirstPayout: 0, ltEndPayout: 0,
+                stContinueRate: 0.77
             }
         };
 
@@ -1927,7 +2141,10 @@
                 eva17: 'インパクトモード',
                 garo: '魔戒チャンス',
                 garo12: '魔戒チャンスLT',
-                ghoul: 'HYPER喰種RUSH'
+                ghoul: 'HYPER喰種RUSH',
+                oumi5: '確変',
+                hokuto4: '真・幻闘RUSH',
+                rezero2: '強欲RUSH'
             };
             return rushNames[machineKey] || 'RUSH';
         }
@@ -1940,6 +2157,124 @@
                 ghoul: '喰種バトル'
             };
             return challengeNames[machineKey] || 'LTチャレンジ';
+        }
+
+        function denchuEntries(spec) {
+            if (spec.denchuPayouts && spec.denchuPayouts.length > 0) {
+                return spec.denchuPayouts;
+            }
+            return [{ prob: 1, payout: spec.denchuPayout || 0 }];
+        }
+
+        function normalizeEntries(entries) {
+            const totalProb = entries.reduce((sum, item) => sum + item.prob, 0);
+            if (totalProb <= 0) return [];
+            return entries.map(item => ({ ...item, prob: item.prob / totalProb }));
+        }
+
+        function drawEntry(entries) {
+            const r = Math.random();
+            let cumulative = 0;
+            for (const item of entries) {
+                cumulative += item.prob;
+                if (r < cumulative) return item;
+            }
+            return entries[entries.length - 1];
+        }
+
+        function expectedRenzokuPayout(item, spec) {
+            if (!item.renzoku || !spec.renzokuRate || spec.renzokuRate >= 1) return 0;
+            return (spec.renzokuPayout || 0) * spec.renzokuRate / (1 - spec.renzokuRate);
+        }
+
+        function expectedEntryPayout(item, spec) {
+            return (item.payout || 0) + expectedRenzokuPayout(item, spec);
+        }
+
+        function expectedEntriesPayout(entries, spec) {
+            return entries.reduce((sum, item) => sum + item.prob * expectedEntryPayout(item, spec), 0);
+        }
+
+        function jitanHitEntries(spec) {
+            const hasJitanSpecificProb = spec.jitanHitProb !== undefined;
+            const rushHesoEntries = spec.hesoPayouts.filter(item => item.st);
+            const normalHesoEntries = spec.hesoPayouts.filter(item => !item.st);
+            if (hasJitanSpecificProb && rushHesoEntries.length > 0 && normalHesoEntries.length > 0) {
+                return normalizeEntries(rushHesoEntries);
+            }
+            return denchuEntries(spec);
+        }
+
+        function truncatedGeometricSpins(prob, spins) {
+            if (!spins) return 0;
+            if (!prob) return spins;
+            return (1 - Math.pow(1 - prob, spins)) / prob;
+        }
+
+        function rushHitRate(spec) {
+            if (spec.isLT) return spec.stContinueRate || 0;
+            if (!spec.stHitProb || !spec.stSpins) return 0;
+            return 1 - Math.pow(1 - spec.stHitProb, spec.stSpins);
+        }
+
+        function expectedProfitYen(machineKey, rotation1k, totalSpins) {
+            const spec = SPECS[machineKey];
+            if (!spec || !rotation1k || !totalSpins) return 0;
+
+            const denchuExpected = expectedEntriesPayout(denchuEntries(spec), spec);
+            const qRush = rushHitRate(spec);
+            const baseRushExtra = qRush >= 1 ? 0 : (qRush / (1 - qRush)) * denchuExpected + (spec.ltEndPayout || 0);
+            const hasLtJitan = spec.isLT && (spec.jitanSpins || 0) > 0;
+            const jitanProb = spec.jitanHitProb ?? spec.hitProb;
+            const qJitan = spec.jitanSpins ? 1 - Math.pow(1 - jitanProb, spec.jitanSpins) : 0;
+            const qZanho = spec.zanhoCount ? 1 - Math.pow(1 - spec.hitProb, spec.zanhoCount) : 0;
+            const reboundProb = qJitan + (1 - qJitan) * qZanho;
+            const recursionDenominator = hasLtJitan ? Math.max(1e-9, 1 - reboundProb) : 1;
+
+            const jitanHitBase = expectedEntriesPayout(jitanHitEntries(spec), spec) + baseRushExtra;
+            const residualHitBase = denchuExpected + baseRushExtra;
+            const jitanValue = spec.jitanSpins
+                ? (qJitan * jitanHitBase + (1 - qJitan) * qZanho * residualHitBase) / recursionDenominator
+                : 0;
+            const rushExtra = baseRushExtra + (hasLtJitan ? jitanValue : 0);
+            const jitanRouteValue = spec.jitanSpins ? jitanValue : 0;
+
+            const hesoValue = spec.hesoPayouts.reduce((sum, item) => {
+                const entryValue = expectedEntryPayout(item, spec);
+                const afterValue = item.st ? rushExtra : jitanRouteValue;
+                return sum + item.prob * (entryValue + afterValue);
+            }, 0);
+
+            const challengeAdjustedHesoValue = spec.ltChallengeRate > 0
+                ? spec.hesoPayouts.reduce((sum, item) => {
+                    const entryValue = expectedEntryPayout(item, spec);
+                    if (!item.st) return sum + item.prob * (entryValue + jitanRouteValue);
+                    const challengeValue = (1 - spec.ltChallengeRate) * (spec.ltEndPayout || 0)
+                        + spec.ltChallengeRate * ((spec.ltFirstPayout || 0) + baseRushExtra);
+                    return sum + item.prob * (entryValue + challengeValue);
+                }, 0)
+                : hesoValue;
+
+            const chargeValue = (spec.chargePayout || 0) + (spec.chargeStRate || 0) * rushExtra;
+            const jitanEpisodeSpinCost = truncatedGeometricSpins(jitanProb, spec.jitanSpins || 0);
+            const recursiveJitanEpisodes = hasLtJitan ? 1 / recursionDenominator : 1;
+            const hesoJitanSpins = spec.hesoPayouts.reduce((sum, item) => {
+                if (item.st && hasLtJitan) return sum + item.prob * recursiveJitanEpisodes * jitanEpisodeSpinCost;
+                if (!item.st && spec.jitanSpins) return sum + item.prob * recursiveJitanEpisodes * jitanEpisodeSpinCost;
+                return sum;
+            }, 0);
+            const chargeJitanSpins = hasLtJitan ? (spec.chargeStRate || 0) * recursiveJitanEpisodes * jitanEpisodeSpinCost : 0;
+            const expectedJitanSpinsPerNormalSpin = spec.hitProb * hesoJitanSpins + (spec.chargeProb || 0) * chargeJitanSpins;
+            const normalSpins = totalSpins / (1 + expectedJitanSpinsPerNormalSpin);
+            const jitanSpinsTotal = totalSpins - normalSpins;
+            const normalCost = normalSpins * (250 / rotation1k);
+            const jitanCost = jitanSpinsTotal * (250 / (spec.jitanRotation1k || rotation1k));
+            const expectedBalls = normalSpins * (
+                spec.hitProb * challengeAdjustedHesoValue
+                + (spec.chargeProb || 0) * chargeValue
+            ) - normalCost - jitanCost;
+
+            return Math.round(expectedBalls * 4);
         }
 
         let isRunning = false;
@@ -2114,6 +2449,15 @@
                 if (!parsed || parsed.version !== 2 || typeof parsed.scopes !== 'object' || parsed.scopes === null) {
                     return defaultData;
                 }
+                let migrated = false;
+                Object.keys(parsed.scopes).forEach(scopeKey => {
+                    const result = normalizeScopeData(scopeKey, parsed.scopes[scopeKey]);
+                    parsed.scopes[scopeKey] = result.scope;
+                    migrated = migrated || result.migrated;
+                });
+                if (migrated) {
+                    localStorage.setItem(DATA_KEY, JSON.stringify(parsed));
+                }
                 return parsed;
             } catch (error) {
                 return defaultData;
@@ -2128,8 +2472,50 @@
             return {
                 stats: { sessions: 0, invest: 0, payout: 0 },
                 history: [],
-                ranking: { bestProfit: null, worstProfit: null, maxChain: null, maxPayout: null }
+                ranking: {
+                    bestProfit: null,
+                    worstProfit: null,
+                    maxChain: null,
+                    maxPayout: null,
+                    bestUpswing: null,
+                    worstDownswing: null
+                }
             };
+        }
+
+        function normalizeScopeData(scopeKey, scope) {
+            const normalized = scope && typeof scope === 'object' ? scope : defaultScope();
+            const defaults = defaultScope();
+            let migrated = false;
+
+            normalized.stats = { ...defaults.stats, ...(normalized.stats || {}) };
+            normalized.ranking = { ...defaults.ranking, ...(normalized.ranking || {}) };
+            normalized.history = Array.isArray(normalized.history) ? normalized.history : [];
+
+            const [machineKey, rotationText] = scopeKey.split(':');
+            const rotation1k = Number(rotationText) || 18;
+            normalized.history = normalized.history.map(session => {
+                if (!session || typeof session !== 'object') {
+                    migrated = true;
+                    return session;
+                }
+                const next = { ...session };
+                const spins = Number(next.spins) || Number(document.getElementById('totalSpins')?.value) || 2000;
+                if (next.spins === undefined) {
+                    next.spins = spins;
+                    migrated = true;
+                }
+                if (next.expected === undefined || next.analyticalExpected === undefined || next.deviation === undefined) {
+                    const expected = Math.round(next.expected ?? next.analyticalExpected ?? expectedProfitYen(machineKey, rotation1k, spins));
+                    next.expected = expected;
+                    next.analyticalExpected = expected;
+                    next.deviation = Math.round((next.profit || 0) - expected);
+                    migrated = true;
+                }
+                return next;
+            });
+
+            return { scope: normalized, migrated };
         }
 
         function loadScope(scopeKey = currentScopeKey()) {
@@ -2193,6 +2579,7 @@
             updateScopeBadges();
             updateCumulativeDisplay();
             updateRankingDisplay();
+            updateDeviationDisplay();
             moveToLatestSession();
             renderCalendar();
             renderProfitChart();
@@ -2237,7 +2624,7 @@
             }
         }
 
-        function addSessionResult(invest, payout, scopeKey = currentScopeKey()) {
+        function addSessionResult(invest, payout, scopeKey = currentScopeKey(), result = null) {
             // 累計収支更新
             const stats = loadCumulativeStats(scopeKey);
             stats.sessions++;
@@ -2246,11 +2633,12 @@
             saveCumulativeStats(stats, scopeKey);
 
             // セッション履歴にも追加
-            addSessionToHistory(invest, payout, scopeKey);
+            addSessionToHistory(invest, payout, scopeKey, result);
             updateCumulativeDisplay();
             // 最新セッションの月にカレンダーを移動
             moveToLatestSession();
             renderCalendar();
+            updateDeviationDisplay();
         }
 
         function resetCumulativeStats() {
@@ -2276,7 +2664,7 @@
             return `${year}-${month}-${day}`;
         }
 
-        function addSessionToHistory(invest, payout, scopeKey = currentScopeKey()) {
+        function addSessionToHistory(invest, payout, scopeKey = currentScopeKey(), result = null) {
             const history = loadSessionHistory(scopeKey);
             // 仮想日付: 1回の稼働 = 1日として記録
             // 開始日を2026-01-01として、セッション数に応じて日付を進める
@@ -2284,12 +2672,21 @@
             const dateStr = getVirtualDateString(dayNumber);
 
             const profit = Math.round((payout * 4) - invest);
+            const [machineKey, rotationText] = scopeKey.split(':');
+            const rotation1k = Number(rotationText) || Number(document.getElementById('rotation1k').value);
+            const spins = Number(result?.plannedSpins) || Number(document.getElementById('totalSpins').value);
+            const expected = expectedProfitYen(machineKey, rotation1k, spins);
+            const deviation = Math.round(profit - expected);
             history.push({
                 date: dateStr,
                 day: dayNumber + 1, // 1日目、2日目...
                 invest: invest,
                 payout: payout,
-                profit: profit
+                profit: profit,
+                spins: spins,
+                expected: expected,
+                analyticalExpected: expected,
+                deviation: deviation
             });
             saveSessionHistory(history, scopeKey);
         }
@@ -2311,6 +2708,7 @@
                 saveAllData(data);
                 updateCumulativeDisplay();
                 updateRankingDisplay();
+                updateDeviationDisplay();
                 renderCalendar();
             }
         }
@@ -2440,14 +2838,83 @@
             return (rounded > 0 ? '+' : '') + rounded.toLocaleString() + '円';
         }
 
+        function formatShortDate(dateStr) {
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            return `${parts[1]}/${parts[2]}`;
+        }
+
+        function renderDeviationRows(container, rows, signClass) {
+            while (container.firstChild) {
+                container.removeChild(container.firstChild);
+            }
+
+            if (rows.length === 0) {
+                const empty = document.createElement('div');
+                empty.className = 'deviation-empty';
+                empty.textContent = 'NO DATA';
+                container.appendChild(empty);
+                return;
+            }
+
+            rows.forEach(session => {
+                const row = document.createElement('div');
+                row.className = `deviation-row ${signClass}`;
+                const date = document.createElement('span');
+                date.textContent = formatShortDate(session.date);
+                const amount = document.createElement('span');
+                amount.textContent = formatSignedYen(session.deviation);
+                row.appendChild(date);
+                row.appendChild(amount);
+                container.appendChild(row);
+            });
+        }
+
+        function updateDeviationDisplay() {
+            const expectedEl = document.getElementById('deviationExpected');
+            const upswingEl = document.getElementById('deviationUpswingList');
+            const downswingEl = document.getElementById('deviationDownswingList');
+            if (!expectedEl || !upswingEl || !downswingEl) return;
+
+            const machineKey = document.getElementById('machine').value;
+            const rotation1k = Number(document.getElementById('rotation1k').value);
+            const totalSpins = Number(document.getElementById('totalSpins').value);
+            const expected = expectedProfitYen(machineKey, rotation1k, totalSpins);
+            expectedEl.textContent = `期待値/日: ${formatSignedYen(expected)}`;
+
+            const history = loadSessionHistory().filter(session => Number.isFinite(session.deviation));
+            const upswing = history
+                .filter(session => session.deviation > 0)
+                .sort((a, b) => b.deviation - a.deviation)
+                .slice(0, 5);
+            const downswing = history
+                .filter(session => session.deviation < 0)
+                .sort((a, b) => a.deviation - b.deviation)
+                .slice(0, 5);
+
+            renderDeviationRows(upswingEl, upswing, 'plus');
+            renderDeviationRows(downswingEl, downswing, 'minus');
+        }
+
         function getCumulativeProfitSeries() {
             let cumulative = 0;
+            let cumulativeExpected = 0;
             return loadSessionHistory().map((session, index) => {
-                cumulative += session.profit;
+                const profit = Number(session.profit) || 0;
+                const expected = Number.isFinite(session.expected)
+                    ? session.expected
+                    : Number.isFinite(session.analyticalExpected)
+                        ? session.analyticalExpected
+                        : 0;
+                cumulative += profit;
+                cumulativeExpected += expected;
                 return {
                     index: index + 1,
-                    profit: session.profit,
-                    cumulative
+                    profit,
+                    expected,
+                    cumulative,
+                    cumulativeExpected,
+                    deviation: cumulative - cumulativeExpected
                 };
             });
         }
@@ -2460,6 +2927,7 @@
             const currentEl = document.getElementById('chartCurrent');
             const peakEl = document.getElementById('chartPeak');
             const lowEl = document.getElementById('chartLow');
+            const deviationEl = document.getElementById('chartDeviation');
             const ctx = canvas.getContext('2d');
             const rect = canvas.getBoundingClientRect();
             const width = Math.max(1, rect.width || canvas.width);
@@ -2476,31 +2944,36 @@
                 currentEl.textContent = '±0円';
                 peakEl.textContent = '±0円';
                 lowEl.textContent = '±0円';
+                if (deviationEl) deviationEl.textContent = '±0円';
                 drawEmptyChartGrid(ctx, width, height);
                 return;
             }
 
             panel.classList.add('has-data');
             const cumulativeValues = series.map(point => point.cumulative);
+            const expectedValues = series.map(point => point.cumulativeExpected);
             const current = cumulativeValues[cumulativeValues.length - 1];
+            const expectedCurrent = expectedValues[expectedValues.length - 1];
+            const currentDeviation = current - expectedCurrent;
             const peak = Math.max(0, ...cumulativeValues);
             const low = Math.min(0, ...cumulativeValues);
             currentEl.textContent = formatSignedYen(current);
             peakEl.textContent = formatSignedYen(peak);
             lowEl.textContent = formatSignedYen(low);
+            if (deviationEl) deviationEl.textContent = formatSignedYen(currentDeviation);
 
             const padding = { top: 14, right: 12, bottom: 22, left: 42 };
             const plotWidth = width - padding.left - padding.right;
             const plotHeight = height - padding.top - padding.bottom;
-            let minValue = low;
-            let maxValue = peak;
+            let minValue = Math.min(low, 0, ...expectedValues);
+            let maxValue = Math.max(peak, 0, ...expectedValues);
             if (minValue === maxValue) {
                 minValue -= 1000;
                 maxValue += 1000;
             }
             const range = maxValue - minValue;
             const yFor = value => padding.top + (maxValue - value) / range * plotHeight;
-            const points = [{ index: 0, cumulative: 0 }, ...series];
+            const points = [{ index: 0, cumulative: 0, cumulativeExpected: 0 }, ...series];
             const xFor = position => padding.left + (points.length === 1 ? plotWidth : position / (points.length - 1) * plotWidth);
             const zeroY = yFor(0);
 
@@ -2526,6 +2999,21 @@
             areaGradient.addColorStop(1, `${dangerColor}38`);
             ctx.fillStyle = areaGradient;
             ctx.fill();
+            ctx.restore();
+
+            const expectedColor = themeColor('--accent-3', '#ffbe18');
+            ctx.save();
+            ctx.beginPath();
+            points.forEach((point, index) => {
+                const x = xFor(index);
+                const y = yFor(point.cumulativeExpected);
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.lineWidth = 1.6;
+            ctx.strokeStyle = `${expectedColor}cc`;
+            if (ctx.setLineDash) ctx.setLineDash([6, 5]);
+            ctx.stroke();
             ctx.restore();
 
             ctx.save();
@@ -2601,6 +3089,7 @@
             updateScopeBadges();
             updateCumulativeDisplay();
             updateRankingDisplay();
+            updateDeviationDisplay();
             moveToLatestSession();
             renderCalendar();
         });
@@ -2618,6 +3107,8 @@
             const worstEl = document.getElementById('rankWorstProfit');
             const chainEl = document.getElementById('rankMaxChain');
             const payoutEl = document.getElementById('rankMaxPayout');
+            const bestUpswingEl = document.getElementById('rankBestUpswing');
+            const worstDownswingEl = document.getElementById('rankWorstDownswing');
 
             bestEl.textContent = stats.bestProfit !== null
                 ? '+' + stats.bestProfit.toLocaleString() + '円' : '---';
@@ -2627,9 +3118,13 @@
                 ? stats.maxChain + '連' : '---';
             payoutEl.textContent = stats.maxPayout !== null
                 ? stats.maxPayout.toLocaleString() + '発' : '---';
+            bestUpswingEl.textContent = stats.bestUpswing !== null
+                ? '+' + stats.bestUpswing.toLocaleString() + '円' : '---';
+            worstDownswingEl.textContent = stats.worstDownswing !== null
+                ? stats.worstDownswing.toLocaleString() + '円' : '---';
         }
 
-        function updateRankingWithResult(profit, maxChain, totalPayout, scopeKey = currentScopeKey()) {
+        function updateRankingWithResult(profit, maxChain, totalPayout, deviation = null, scopeKey = currentScopeKey()) {
             const stats = loadRankingStats(scopeKey);
             let updated = false;
 
@@ -2657,6 +3152,16 @@
                 updated = true;
             }
 
+            if (deviation !== null && deviation > 0 && (stats.bestUpswing === null || deviation > stats.bestUpswing)) {
+                stats.bestUpswing = deviation;
+                updated = true;
+            }
+
+            if (deviation !== null && deviation < 0 && (stats.worstDownswing === null || deviation < stats.worstDownswing)) {
+                stats.worstDownswing = deviation;
+                updated = true;
+            }
+
             if (updated) {
                 saveRankingStats(stats, scopeKey);
                 updateRankingDisplay();
@@ -2676,19 +3181,33 @@
         }
 
         // 電チュー出玉を取得（振り分けがある場合は確率で選択）
+        function getDenchuResult(spec) {
+            return drawEntry(denchuEntries(spec));
+        }
+
         function getDenchuPayout(spec) {
-            if (spec.denchuPayouts && spec.denchuPayouts.length > 0) {
-                const r = Math.random();
-                let cumulative = 0;
-                for (const item of spec.denchuPayouts) {
-                    cumulative += item.prob;
-                    if (r < cumulative) {
-                        return item.payout;
-                    }
-                }
-                return spec.denchuPayouts[spec.denchuPayouts.length - 1].payout;
+            return getDenchuResult(spec).payout;
+        }
+
+        function getJitanHitResult(spec) {
+            return drawEntry(jitanHitEntries(spec));
+        }
+
+        function drawRenzokuBonus(spec, item) {
+            const bonus = { count: 0, payout: 0 };
+            if (!item?.renzoku || !spec.renzokuRate || !spec.renzokuPayout) return bonus;
+            while (Math.random() < spec.renzokuRate) {
+                bonus.count++;
+                bonus.payout += spec.renzokuPayout;
             }
-            return spec.denchuPayout;
+            return bonus;
+        }
+
+        function applyRenzokuFast(session, spec, item, chain) {
+            const bonus = drawRenzokuBonus(spec, item);
+            session.myBalls += bonus.payout;
+            chain.count += bonus.count;
+            chain.payout += bonus.payout;
         }
 
         function drawNormalOutcome(spec) {
@@ -2753,12 +3272,13 @@
             finalResult.className = 'final-result';
         }
 
-        function buildSessionResult(machineKey, rotations, balls, investment, hitCount, maxChain, maxPayout) {
+        function buildSessionResult(machineKey, rotations, balls, investment, hitCount, maxChain, maxPayout, plannedSpins = rotations) {
             const finalBalls = Math.floor(balls);
             return {
                 machineKey,
                 machineName: SPECS[machineKey].name,
                 rotations,
+                plannedSpins,
                 finalBalls,
                 totalInvestment: investment,
                 hitCount,
@@ -2782,8 +3302,9 @@
         }
 
         function recordSessionOutcome(result, scopeKey = currentScopeKey()) {
-            addSessionResult(result.totalInvestment, result.finalBalls, scopeKey);
-            updateRankingWithResult(result.finalProfit, result.maxChain, result.maxPayout, scopeKey);
+            addSessionResult(result.totalInvestment, result.finalBalls, scopeKey, result);
+            const expected = expectedProfitYen(result.machineKey, Number(scopeKey.split(':')[1]), result.plannedSpins);
+            updateRankingWithResult(result.finalProfit, result.maxChain, result.maxPayout, Math.round(result.finalProfit - expected), scopeKey);
         }
 
         function logFinalResult(result) {
@@ -2812,9 +3333,10 @@
             session.maxSessionPayout = Math.max(session.maxSessionPayout, chainPayout);
         }
 
-        function processStandardRushFast(session, spec, firstPayout) {
-            let chainCount = 1;
-            let chainPayout = firstPayout;
+        function processStandardRushFast(session, spec, firstResult) {
+            const firstItem = typeof firstResult === 'number' ? { payout: firstResult } : firstResult;
+            const chain = { count: 1, payout: firstItem.payout };
+            applyRenzokuFast(session, spec, firstItem, chain);
 
             while (true) {
                 let hitInRush = false;
@@ -2830,33 +3352,72 @@
                 }
                 if (!hitInRush) break;
 
-                chainCount++;
-                const payout = getDenchuPayout(spec);
-                session.myBalls += payout;
-                chainPayout += payout;
+                chain.count++;
+                const item = getDenchuResult(spec);
+                session.myBalls += item.payout;
+                chain.payout += item.payout;
+                applyRenzokuFast(session, spec, item, chain);
             }
 
             if (spec.ltEndPayout > 0) {
                 session.myBalls += spec.ltEndPayout;
-                chainPayout += spec.ltEndPayout;
+                chain.payout += spec.ltEndPayout;
             }
 
-            updateFastRecords(session, chainCount, chainPayout);
+            updateFastRecords(session, chain.count, chain.payout);
+            return spec.isLT && spec.jitanSpins > 0;
         }
 
-        function processResidualFast(session, spec) {
-            if (!spec.zanhoCount) return;
+        function processResidualFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k) {
+            if (!spec.zanhoCount) return false;
 
             for (let i = 0; i < spec.zanhoCount; i++) {
                 if (Math.random() < spec.hitProb) {
                     session.hitCount++;
-                    const payout = getDenchuPayout(spec);
-                    session.myBalls += payout;
-                    updateFastRecords(session, 1, payout);
-                    processStandardRushFast(session, spec, payout);
+                    const item = getDenchuResult(spec);
+                    session.myBalls += item.payout;
+                    updateFastRecords(session, 1, item.payout);
+                    const needsJitan = processStandardRushFast(session, spec, item);
+                    if (needsJitan) {
+                        processJitanFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
+                    }
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function processJitanFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k) {
+            if (!spec.jitanSpins) {
+                return processResidualFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
+            }
+
+            const jitanHitProb = spec.jitanHitProb ?? spec.hitProb;
+            let jitanSpinCount = 0;
+            let hitInJitan = false;
+            while (jitanSpinCount < spec.jitanSpins && session.rotations < totalSpins) {
+                session.rotations++;
+                jitanSpinCount++;
+                buyBalls(session, ballsPerSpinJitan, ballsPer1k);
+                if (Math.random() < jitanHitProb) {
+                    hitInJitan = true;
                     break;
                 }
             }
+
+            if (hitInJitan) {
+                session.hitCount++;
+                const item = getJitanHitResult(spec);
+                session.myBalls += item.payout;
+                updateFastRecords(session, 1, item.payout);
+                const needsJitan = processStandardRushFast(session, spec, item);
+                if (needsJitan) {
+                    processJitanFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
+                }
+                return true;
+            }
+
+            return processResidualFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
         }
 
         function processChallengeRushFast(session, spec, firstPayout) {
@@ -2926,14 +3487,17 @@
                 if (!chargeBousou && !figureHit) break;
 
                 session.hitCount++;
+                let firstResult;
                 let firstPayout;
                 let stEntered;
                 if (chargeBousou) {
-                    firstPayout = spec.chargePayout;
+                    firstResult = { payout: spec.chargePayout, st: true };
+                    firstPayout = firstResult.payout;
                     stEntered = true;
                 } else {
                     const hesoResult = getHesoResult(spec);
-                    firstPayout = hesoResult.payout;
+                    firstResult = hesoResult;
+                    firstPayout = firstResult.payout;
                     stEntered = hesoResult.st;
                     session.myBalls += firstPayout;
                 }
@@ -2944,35 +3508,18 @@
                     if (spec.ltChallengeRate > 0) {
                         processChallengeRushFast(session, spec, firstPayout);
                     } else {
-                        processStandardRushFast(session, spec, firstPayout);
+                        const needsJitan = processStandardRushFast(session, spec, firstResult);
+                        if (needsJitan) {
+                            processJitanFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
+                        }
                         if (!spec.isLT) {
-                            processResidualFast(session, spec);
+                            processResidualFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
                         }
                     }
                     continue;
                 }
 
-                let jitanSpinCount = 0;
-                let hitInJitan = false;
-                while (jitanSpinCount < spec.jitanSpins && session.rotations < totalSpins) {
-                    session.rotations++;
-                    jitanSpinCount++;
-                    buyBalls(session, ballsPerSpinJitan, ballsPer1k);
-                    if (Math.random() < spec.hitProb) {
-                        hitInJitan = true;
-                        break;
-                    }
-                }
-
-                if (hitInJitan) {
-                    session.hitCount++;
-                    const payout = getDenchuPayout(spec);
-                    session.myBalls += payout;
-                    updateFastRecords(session, 1, payout);
-                    processStandardRushFast(session, spec, payout);
-                } else {
-                    processResidualFast(session, spec);
-                }
+                processJitanFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
             }
 
             return buildSessionResult(
@@ -2982,7 +3529,8 @@
                 session.totalInvestment,
                 session.hitCount,
                 session.maxSessionChain,
-                session.maxSessionPayout
+                session.maxSessionPayout,
+                totalSpins
             );
         }
 
@@ -3071,11 +3619,11 @@
             for (const p of spec.hesoPayouts) {
                 cumulative += p.prob;
                 if (r < cumulative) {
-                    return { payout: p.payout, st: p.st };
+                    return { ...p };
                 }
             }
             const last = spec.hesoPayouts[spec.hesoPayouts.length - 1];
-            return { payout: last.payout, st: last.st };
+            return { ...last };
         }
 
         async function startSimulation() {
@@ -3176,15 +3724,17 @@
                 updateDisplay(rotations, myBalls, totalInvestment);
 
                 // 初当たり処理
-                let firstPayout, stEntered;
+                let firstResult, firstPayout, stEntered;
                 if (chargeBousou) {
-                    firstPayout = spec.chargePayout;
+                    firstResult = { payout: spec.chargePayout, st: true };
+                    firstPayout = firstResult.payout;
                     stEntered = true;
                     addLog(`🎰【当たり${hitCount}】暴走から${getRushName(machineKey)}突入！`, 'log-hit');
                     playEffect('hit', '大当り', getRushName(machineKey), 1300);
                 } else {
                     const result = getHesoResult(spec);
-                    firstPayout = result.payout;
+                    firstResult = result;
+                    firstPayout = firstResult.payout;
                     stEntered = result.st;
                     myBalls += firstPayout;
                     addLog(`🎰【当たり${hitCount}】${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 'log-hit');
@@ -3203,6 +3753,13 @@
                     const isLtChallenge = spec.ltChallengeRate > 0;
                     let chainCount = 1;
                     let chainPayout = firstPayout;
+                    const firstBonus = drawRenzokuBonus(spec, firstResult);
+                    if (firstBonus.payout > 0) {
+                        myBalls += firstBonus.payout;
+                        chainCount += firstBonus.count;
+                        chainPayout += firstBonus.payout;
+                        addLog(`  無双連撃 +${firstBonus.payout.toLocaleString()}発`, 'log-chain');
+                    }
 
                     if (isLtChallenge) {
                         // チャレンジ機種の場合（牙狼系・喰種）
@@ -3287,13 +3844,21 @@
                             }
 
                             chainCount++;
-                            const payout = getDenchuPayout(spec);
+                            const item = getDenchuResult(spec);
+                            const payout = item.payout;
                             myBalls += payout;
                             chainPayout += payout;
+                            const bonus = drawRenzokuBonus(spec, item);
+                            if (bonus.payout > 0) {
+                                myBalls += bonus.payout;
+                                chainCount += bonus.count;
+                                chainPayout += bonus.payout;
+                            }
                             updateDisplay(rotations, myBalls, totalInvestment);
                             const spinText = spec.isLT ? `${stLabel}1回転` : `ST${stSpin}回転`;
-                            addLog(`  ${chainCount}連目: ${spinText} +${payout.toLocaleString()}発`, 'log-chain');
-                            playEffect('chain', `${chainCount}連`, `+${payout.toLocaleString()}発`, 800);
+                            const totalPayout = payout + bonus.payout;
+                            addLog(`  ${chainCount}連目: ${spinText} +${totalPayout.toLocaleString()}発`, 'log-chain');
+                            playEffect('chain', `${chainCount}連`, `+${totalPayout.toLocaleString()}発`, 800);
                             flashStat('ballsDisplay');
                             await sleep(baseDelay * 4);
                         }
@@ -3311,6 +3876,84 @@
                         addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
                         maxSessionChain = Math.max(maxSessionChain, chainCount);
                         maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
+
+                        while (spec.isLT && spec.jitanSpins > 0 && rotations < totalSpins && !shouldStop) {
+                            addLog(`→ 時短${spec.jitanSpins}回転へ`, 'log-jitan');
+                            setState('時短', `0/${spec.jitanSpins}`);
+                            playEffect('jitan', '時短', `${spec.jitanSpins}回転`, 900);
+                            await sleep(baseDelay * 2);
+
+                            let jitanSpinCount = 0;
+                            let hitInJitan = false;
+                            while (jitanSpinCount < spec.jitanSpins && rotations < totalSpins && !shouldStop) {
+                                rotations++;
+                                jitanSpinCount++;
+                                consumeBalls(ballsPerSpinJitan);
+                                if (jitanSpinCount % 20 === 0) {
+                                    updateDisplay(rotations, myBalls, totalInvestment);
+                                    setState('時短', `${jitanSpinCount}/${spec.jitanSpins}`);
+                                    await sleep(baseDelay / 3);
+                                }
+                                if (Math.random() < (spec.jitanHitProb ?? spec.hitProb)) {
+                                    hitInJitan = true;
+                                    break;
+                                }
+                            }
+                            if (!hitInJitan) break;
+
+                            hitCount++;
+                            const reboundItem = getJitanHitResult(spec);
+                            myBalls += reboundItem.payout;
+                            addLog(`🎰【当たり${hitCount}】時短${jitanSpinCount}回転目で引き戻し！ +${reboundItem.payout.toLocaleString()}発`, 'log-hit');
+                            updateDisplay(rotations, myBalls, totalInvestment);
+                            flashStat('ballsDisplay');
+                            await sleep(baseDelay * 3);
+
+                            chainCount = 1;
+                            chainPayout = reboundItem.payout;
+                            const reboundBonus = drawRenzokuBonus(spec, reboundItem);
+                            if (reboundBonus.payout > 0) {
+                                myBalls += reboundBonus.payout;
+                                chainCount += reboundBonus.count;
+                                chainPayout += reboundBonus.payout;
+                                addLog(`  無双連撃 +${reboundBonus.payout.toLocaleString()}発`, 'log-chain');
+                            }
+
+                            addLog(`>>> ${rushName}再突入！（${spec.stSpins}回転）`, 'log-st');
+                            setState(rushName, `${spec.stSpins}回転`);
+                            await sleep(baseDelay * 4);
+
+                            while (!shouldStop && Math.random() < spec.stContinueRate) {
+                                chainCount++;
+                                const item = getDenchuResult(spec);
+                                myBalls += item.payout;
+                                chainPayout += item.payout;
+                                const bonus = drawRenzokuBonus(spec, item);
+                                if (bonus.payout > 0) {
+                                    myBalls += bonus.payout;
+                                    chainCount += bonus.count;
+                                    chainPayout += bonus.payout;
+                                }
+                                const totalPayout = item.payout + bonus.payout;
+                                updateDisplay(rotations, myBalls, totalInvestment);
+                                addLog(`  ${chainCount}連目: LT1回転 +${totalPayout.toLocaleString()}発`, 'log-chain');
+                                playEffect('chain', `${chainCount}連`, `+${totalPayout.toLocaleString()}発`, 800);
+                                flashStat('ballsDisplay');
+                                await sleep(baseDelay * 4);
+                            }
+
+                            if (spec.ltEndPayout > 0) {
+                                myBalls += spec.ltEndPayout;
+                                chainPayout += spec.ltEndPayout;
+                                updateDisplay(rotations, myBalls, totalInvestment);
+                                addLog(`  LT転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
+                                flashStat('ballsDisplay');
+                                await sleep(baseDelay * 2);
+                            }
+                            addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
+                            maxSessionChain = Math.max(maxSessionChain, chainCount);
+                            maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
+                        }
 
                         // インパクトモード終了後の残保留チェック（eva15向け）
                         if (!spec.isLT && spec.zanhoCount > 0) {
@@ -3396,7 +4039,7 @@
                             await sleep(baseDelay / 3);
                         }
 
-                        if (Math.random() < spec.hitProb) {
+                        if (Math.random() < (spec.jitanHitProb ?? spec.hitProb)) {
                             hitInJitan = true;
                             break;
                         }
@@ -3405,7 +4048,8 @@
                     if (hitInJitan) {
                         // 時短引き戻し
                         hitCount++;
-                        const payout = getDenchuPayout(spec);
+                        const jitanItem = getJitanHitResult(spec);
+                        const payout = jitanItem.payout;
                         myBalls += payout;
                         addLog(`🎰【当たり${hitCount}】時短${jitanSpinCount}回転目で引き戻し！ +${payout.toLocaleString()}発`, 'log-hit');
                         playEffect('hit', '引き戻し', `時短${jitanSpinCount}回転目`, 1200);
@@ -3422,29 +4066,59 @@
 
                         let chainCount = 1;
                         let chainPayout = payout;
+                        const firstBonus = drawRenzokuBonus(spec, jitanItem);
+                        if (firstBonus.payout > 0) {
+                            myBalls += firstBonus.payout;
+                            chainCount += firstBonus.count;
+                            chainPayout += firstBonus.payout;
+                            addLog(`  無双連撃 +${firstBonus.payout.toLocaleString()}発`, 'log-chain');
+                        }
 
                         while (!shouldStop) {
                             let stSpin = 0;
                             let hitInSt = false;
 
-                            for (stSpin = 1; stSpin <= spec.stSpins; stSpin++) {
-                                if (Math.random() < spec.stHitProb) {
-                                    hitInSt = true;
-                                    break;
+                            if (spec.isLT) {
+                                hitInSt = Math.random() < spec.stContinueRate;
+                                stSpin = 1;
+                            } else {
+                                for (stSpin = 1; stSpin <= spec.stSpins; stSpin++) {
+                                    if (Math.random() < spec.stHitProb) {
+                                        hitInSt = true;
+                                        break;
+                                    }
                                 }
                             }
 
                             if (!hitInSt) break;
 
                             chainCount++;
-                            const p = getDenchuPayout(spec);
+                            const item = getDenchuResult(spec);
+                            const p = item.payout;
                             myBalls += p;
                             chainPayout += p;
+                            const bonus = drawRenzokuBonus(spec, item);
+                            if (bonus.payout > 0) {
+                                myBalls += bonus.payout;
+                                chainCount += bonus.count;
+                                chainPayout += bonus.payout;
+                            }
                             updateDisplay(rotations, myBalls, totalInvestment);
-                            addLog(`  ${chainCount}連目: ST${stSpin}回転 +${p.toLocaleString()}発`, 'log-chain');
-                            playEffect('chain', `${chainCount}連`, `+${p.toLocaleString()}発`, 800);
+                            const totalPayout = p + bonus.payout;
+                            const spinText = spec.isLT ? `LT${stSpin}回転` : `ST${stSpin}回転`;
+                            addLog(`  ${chainCount}連目: ${spinText} +${totalPayout.toLocaleString()}発`, 'log-chain');
+                            playEffect('chain', `${chainCount}連`, `+${totalPayout.toLocaleString()}発`, 800);
                             flashStat('ballsDisplay');
                             await sleep(baseDelay * 4);
+                        }
+
+                        if (spec.ltEndPayout > 0) {
+                            myBalls += spec.ltEndPayout;
+                            chainPayout += spec.ltEndPayout;
+                            updateDisplay(rotations, myBalls, totalInvestment);
+                            addLog(`  LT転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
+                            flashStat('ballsDisplay');
+                            await sleep(baseDelay * 2);
                         }
 
                         addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
@@ -3531,7 +4205,8 @@
                 totalInvestment,
                 hitCount,
                 maxSessionChain,
-                maxSessionPayout
+                maxSessionPayout,
+                totalSpins
             );
 
             logFinalResult(result);
@@ -3638,6 +4313,7 @@
         });
 
         document.getElementById('rotation1k').addEventListener('change', onScopeChange);
+        document.getElementById('totalSpins').addEventListener('change', updateDeviationDisplay);
 
         setMachineTheme(document.getElementById('machine').value);
         setStageMode('idle', 'READY', '待機中');
