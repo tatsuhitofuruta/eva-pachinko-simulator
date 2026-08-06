@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "eva-pachinko-simulator",
+  "compatibility_date": "2026-07-29",
+  "pages_build_output_dir": "./dist",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "eva-pachinko-leaderboard",
+      "database_id": "3d3e9940-a19d-4981-bc7f-200e89945395"
+    }
+  ]
+}

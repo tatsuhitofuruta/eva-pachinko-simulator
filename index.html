@@ -42,6 +42,11 @@
             --accent-2: #b35cff;
             --accent-3: #ff7d9d;
         }
+        body[data-machine="shigotonin6"] {
+            --accent: #d6a92d;
+            --accent-2: #c9362b;
+            --accent-3: #f4d675;
+        }
         * {
             box-sizing: border-box;
         }
@@ -810,6 +815,29 @@
             border-color: var(--danger);
             color: color-mix(in srgb, var(--danger) 80%, #fff);
         }
+        .panel-actions {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+        .btn-ranking-open {
+            background: color-mix(in srgb, var(--accent-3) 12%, transparent);
+            border: 1px solid color-mix(in srgb, var(--accent-3) 45%, transparent);
+            color: color-mix(in srgb, var(--accent-3) 82%, #fff);
+            padding: 5px 10px;
+            border-radius: 2px;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            font-size: 10px;
+            letter-spacing: 0.08em;
+            white-space: nowrap;
+            transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
+        }
+        .btn-ranking-open:hover {
+            background: color-mix(in srgb, var(--accent-3) 20%, transparent);
+            border-color: var(--accent-3);
+            color: #fff;
+        }
         .cumulative-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
@@ -1034,7 +1062,7 @@
         }
         .chart-metrics {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin-top: 9px;
         }
@@ -1187,6 +1215,258 @@
             color: var(--muted-2);
             font-size: 12px;
             margin-top: 3px;
+        }
+        .final-actions {
+            margin-top: 12px;
+        }
+        .btn-ranking-submit {
+            width: 100%;
+            min-height: 38px;
+            border: 1px solid color-mix(in srgb, var(--accent-3) 58%, transparent);
+            border-radius: 2px;
+            background:
+                repeating-linear-gradient(-45deg, rgba(0,0,0,0.12) 0 7px, transparent 7px 14px),
+                linear-gradient(180deg, color-mix(in srgb, var(--accent-3) 86%, #fff 14%), color-mix(in srgb, var(--accent-3) 70%, #241800));
+            color: #100b01;
+            cursor: pointer;
+            font-family: var(--font-hud);
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+        .btn-ranking-submit:hover:not(:disabled) {
+            filter: brightness(1.12);
+        }
+        .btn-ranking-submit:disabled {
+            border-color: var(--line);
+            background: rgba(255,255,255,0.045);
+            color: var(--muted-2);
+            cursor: not-allowed;
+        }
+
+        /* ===== global leaderboard ===== */
+        .global-ranking-dialog {
+            width: min(92vw, 760px);
+            max-width: 760px;
+            max-height: min(88vh, 780px);
+            margin: auto;
+            padding: 0;
+            border: 1px solid color-mix(in srgb, var(--accent-3) 58%, transparent);
+            border-radius: 4px;
+            background:
+                linear-gradient(145deg, color-mix(in srgb, var(--accent-3) 7%, transparent), transparent 38%),
+                #070c0a;
+            color: var(--text);
+            box-shadow: 0 28px 90px rgba(0,0,0,0.72);
+        }
+        .global-ranking-dialog::backdrop {
+            background: rgba(0, 3, 2, 0.78);
+            backdrop-filter: blur(5px);
+        }
+        .global-ranking-card {
+            max-height: min(88vh, 780px);
+            overflow-y: auto;
+        }
+        .global-ranking-header {
+            position: sticky;
+            top: 0;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 18px 20px 15px;
+            border-bottom: 1px solid var(--line);
+            background: rgba(7,12,10,0.96);
+        }
+        .global-ranking-heading {
+            margin: 0;
+            font-size: 19px;
+        }
+        .global-ranking-heading small {
+            display: block;
+            margin-top: 3px;
+            color: var(--muted-2);
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 400;
+            letter-spacing: 0.2em;
+        }
+        .global-ranking-close {
+            width: 36px;
+            height: 36px;
+            flex: 0 0 36px;
+            border: 1px solid var(--line);
+            border-radius: 2px;
+            background: rgba(255,255,255,0.035);
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 19px;
+        }
+        .global-ranking-close:hover {
+            border-color: var(--line-strong);
+            color: var(--text);
+        }
+        .global-ranking-body {
+            padding: 18px 20px 20px;
+        }
+        .global-ranking-tabs {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 4px;
+            margin-bottom: 14px;
+            padding: 4px;
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            background: rgba(0,0,0,0.24);
+        }
+        .global-ranking-tab {
+            min-height: 38px;
+            border: 1px solid transparent;
+            border-radius: 2px;
+            background: transparent;
+            color: var(--muted);
+            cursor: pointer;
+            font-family: var(--font-hud);
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+        }
+        .global-ranking-tab:hover {
+            color: var(--text);
+        }
+        .global-ranking-tab[aria-pressed="true"] {
+            border-color: color-mix(in srgb, var(--accent-3) 54%, transparent);
+            background: color-mix(in srgb, var(--accent-3) 13%, transparent);
+            color: var(--accent-3);
+        }
+        .global-ranking-filter {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: end;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+        .global-ranking-filter label,
+        .global-ranking-form label {
+            display: block;
+            margin: 0;
+        }
+        .global-ranking-filter label span,
+        .global-ranking-form label span {
+            display: block;
+            margin-bottom: 6px;
+            color: var(--muted);
+            font-size: 11px;
+            letter-spacing: 0.06em;
+        }
+        .global-ranking-note {
+            margin: 0 0 14px;
+            color: var(--muted);
+            font-size: 11px;
+            line-height: 1.7;
+        }
+        .global-ranking-table-wrap {
+            overflow-x: auto;
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            background: rgba(0,0,0,0.28);
+        }
+        .global-ranking-table {
+            width: 100%;
+            min-width: 570px;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .global-ranking-table th,
+        .global-ranking-table td {
+            padding: 10px 11px;
+            border-bottom: 1px solid var(--line);
+            text-align: left;
+            white-space: nowrap;
+        }
+        .global-ranking-table th {
+            color: var(--muted-2);
+            font-family: var(--font-mono);
+            font-size: 9px;
+            font-weight: 400;
+            letter-spacing: 0.13em;
+        }
+        .global-ranking-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .global-ranking-table tbody tr:nth-child(-n+3) .global-ranking-rank {
+            color: var(--accent-3);
+        }
+        .global-ranking-rank,
+        .global-ranking-score,
+        .global-ranking-condition,
+        .global-ranking-date {
+            font-family: var(--font-mono);
+            font-variant-numeric: tabular-nums;
+        }
+        .global-ranking-rank {
+            width: 56px;
+            color: var(--muted);
+        }
+        .global-ranking-name {
+            max-width: 190px;
+            overflow: hidden;
+            color: var(--text);
+            font-weight: 700;
+            text-overflow: ellipsis;
+        }
+        .global-ranking-score {
+            color: var(--accent-3);
+            font-size: 14px;
+            font-weight: 700;
+            text-align: right !important;
+        }
+        .global-ranking-condition,
+        .global-ranking-date {
+            color: var(--muted);
+        }
+        .global-ranking-empty {
+            height: 92px;
+            color: var(--muted-2);
+            text-align: center !important;
+            letter-spacing: 0.08em;
+        }
+        .global-ranking-entry {
+            margin-top: 16px;
+            padding: 14px;
+            border: 1px solid color-mix(in srgb, var(--accent-3) 32%, transparent);
+            border-radius: 3px;
+            background: color-mix(in srgb, var(--accent-3) 5%, transparent);
+        }
+        .global-ranking-candidate {
+            margin-bottom: 12px;
+            color: var(--text);
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .global-ranking-candidate strong {
+            color: var(--accent-3);
+            font-family: var(--font-mono);
+            font-size: 16px;
+        }
+        .global-ranking-form {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(180px, 0.42fr);
+            align-items: end;
+            gap: 10px;
+        }
+        .global-ranking-status {
+            min-height: 1.5em;
+            margin: 10px 0 0;
+            color: var(--muted);
+            font-size: 11px;
+        }
+        .global-ranking-status.is-error {
+            color: color-mix(in srgb, var(--danger) 80%, #fff);
+        }
+        .global-ranking-status.is-success {
+            color: var(--success);
         }
 
         /* ===== desktop dashboard ===== */
@@ -1435,6 +1715,13 @@
             .final-stat-label {
                 font-size: 10.5px;
             }
+            .final-actions {
+                margin-top: 8px;
+            }
+            .btn-ranking-submit {
+                min-height: 34px;
+                font-size: 11px;
+            }
         }
 
         /* ===== keyframes ===== */
@@ -1585,45 +1872,55 @@
             .stats-panels {
                 flex-direction: column;
             }
-            .run-actions {
-                grid-template-columns: 1fr;
-            }
-            .cumulative-header,
-            .calendar-header {
-                flex-wrap: wrap;
-            }
-            .cumulative-header .scope-badge,
-            .calendar-header .scope-badge {
-                white-space: normal;
-                text-align: center;
-            }
-            .calendar-header .scope-badge {
-                flex: 1 1 100%;
-                order: 3;
-            }
-            .calendar-header .btn-reset {
-                flex: 1 1 100%;
-                order: 4;
-            }
-            .chart-metrics {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .deviation-panel summary {
-                flex-wrap: wrap;
-            }
-            .deviation-expected {
-                flex: 1 1 100%;
-                margin-left: 18px;
-                white-space: normal;
-            }
-            .deviation-grid {
-                grid-template-columns: 1fr;
-            }
             .cumulative-grid, .ranking-grid {
                 grid-template-columns: repeat(2, 1fr);
             }
             .final-stat-value {
                 font-size: 23px;
+            }
+            .panel-actions {
+                gap: 5px;
+            }
+            .btn-ranking-open,
+            .btn-reset {
+                padding: 5px 7px;
+            }
+            .global-ranking-header {
+                padding: 15px;
+            }
+            .global-ranking-body {
+                padding: 15px;
+            }
+            .global-ranking-filter,
+            .global-ranking-form {
+                grid-template-columns: 1fr;
+            }
+            .global-ranking-table {
+                min-width: 0;
+                table-layout: fixed;
+            }
+            .global-ranking-table th,
+            .global-ranking-table td {
+                padding: 9px 6px;
+            }
+            .global-ranking-rank {
+                width: 38px;
+            }
+            .global-ranking-name {
+                width: auto;
+            }
+            .global-ranking-score {
+                width: 88px;
+            }
+            .global-ranking-condition {
+                width: 76px;
+                overflow: hidden;
+                font-size: 10px;
+                text-overflow: ellipsis;
+            }
+            .global-ranking-date,
+            .global-ranking-table th:last-child {
+                display: none;
             }
         }
         @media (max-width: 420px) {
@@ -1673,6 +1970,7 @@
                         <option value="oumi5">P大海物語5</option>
                         <option value="hokuto4">P真・北斗無双 第4章</option>
                         <option value="rezero2">e Re:ゼロから始める異世界生活 season2</option>
+                        <option value="shigotonin6">ぱちんこ 必殺仕事人Ⅵ</option>
                     </select>
                 </div>
                 <div class="control-group">
@@ -1806,7 +2104,10 @@
             <div class="ranking-panel">
                 <div class="cumulative-header">
                     <span class="panel-title">個人記録<small>RECORDS</small></span>
-                    <button class="btn-reset" onclick="resetRankingStats()">リセット</button>
+                    <div class="panel-actions">
+                        <button class="btn-ranking-open" id="globalRankingOpenBtn" type="button">全ユーザー</button>
+                        <button class="btn-reset" onclick="resetRankingStats()">リセット</button>
+                    </div>
                 </div>
                 <div class="ranking-grid">
                     <div class="ranking-item best">
@@ -1882,10 +2183,6 @@
                         <span>最低</span>
                         <strong id="chartLow">±0円</strong>
                     </div>
-                    <div class="chart-metric">
-                        <span>期待差</span>
-                        <strong id="chartDeviation">±0円</strong>
-                    </div>
                 </div>
             </div>
             <details class="deviation-panel" id="deviationPanel">
@@ -1926,8 +2223,106 @@
                     <div class="final-stat-label">収支</div>
                 </div>
             </div>
+            <div class="final-actions">
+                <button class="btn-ranking-submit" id="globalRankingResultBtn" type="button" disabled>
+                    完走後にランキング登録
+                </button>
+            </div>
         </div>
     </div>
+
+    <dialog class="global-ranking-dialog" id="globalRankingDialog" aria-labelledby="globalRankingTitle">
+        <div class="global-ranking-card">
+            <header class="global-ranking-header">
+                <h2 class="global-ranking-heading" id="globalRankingTitle">
+                    <span id="globalRankingHeadingLabel">出玉ランキング</span>
+                    <small>GLOBAL TOP 10</small>
+                </h2>
+                <button class="global-ranking-close" id="globalRankingCloseBtn" type="button" aria-label="ランキングを閉じる">×</button>
+            </header>
+            <div class="global-ranking-body">
+                <div class="global-ranking-tabs" role="group" aria-label="ランキング種別">
+                    <button
+                        class="global-ranking-tab"
+                        type="button"
+                        data-ranking-category="balls"
+                        aria-pressed="true"
+                    >
+                        出玉
+                    </button>
+                    <button
+                        class="global-ranking-tab"
+                        type="button"
+                        data-ranking-category="drought"
+                        aria-pressed="false"
+                    >
+                        大ハマり
+                    </button>
+                </div>
+                <div class="global-ranking-filter">
+                    <label for="globalRankingMachine">
+                        <span>機種</span>
+                        <select id="globalRankingMachine">
+                            <option value="eva15">P新世紀エヴァンゲリオン15 未来への咆哮</option>
+                            <option value="eva17">e 新世紀エヴァンゲリオン ～はじまりの記憶～</option>
+                            <option value="garo">CR牙狼XX</option>
+                            <option value="garo12">e牙狼12黄金騎士極限</option>
+                            <option value="ghoul">e 東京喰種</option>
+                            <option value="oumi5">P大海物語5</option>
+                            <option value="hokuto4">P真・北斗無双 第4章</option>
+                            <option value="rezero2">e Re:ゼロから始める異世界生活 season2</option>
+                            <option value="shigotonin6">ぱちんこ 必殺仕事人Ⅵ</option>
+                        </select>
+                    </label>
+                    <button class="btn-ranking-open" id="globalRankingReloadBtn" type="button">再読込</button>
+                </div>
+                <p class="global-ranking-note" id="globalRankingNote">
+                    1日実行の最終持ち玉で順位を決定。同一回線は機種ごとの自己ベスト1件を表示します。
+                </p>
+                <div class="global-ranking-table-wrap">
+                    <table class="global-ranking-table">
+                        <thead>
+                            <tr>
+                                <th>RANK</th>
+                                <th>NICKNAME</th>
+                                <th id="globalRankingMetricHeader">出玉</th>
+                                <th>条件</th>
+                                <th>登録日</th>
+                            </tr>
+                        </thead>
+                        <tbody id="globalRankingRows">
+                            <tr>
+                                <td class="global-ranking-empty" colspan="5">読み込み中...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <section class="global-ranking-entry" aria-labelledby="globalRankingEntryTitle">
+                    <div class="global-ranking-candidate" id="globalRankingCandidate">
+                        1日実行を最後まで完走すると登録できます。
+                    </div>
+                    <form class="global-ranking-form" id="globalRankingForm">
+                        <label for="globalRankingNickname">
+                            <span id="globalRankingEntryTitle">ニックネーム（12文字まで）</span>
+                            <input
+                                id="globalRankingNickname"
+                                name="nickname"
+                                type="text"
+                                maxlength="12"
+                                autocomplete="nickname"
+                                placeholder="ニックネーム"
+                                required
+                            >
+                        </label>
+                        <button class="btn-ranking-submit" id="globalRankingSubmitBtn" type="submit" disabled>
+                            この結果を登録
+                        </button>
+                    </form>
+                    <p class="global-ranking-status" id="globalRankingStatus" role="status" aria-live="polite"></p>
+                </section>
+            </div>
+        </div>
+    </dialog>
 
     <script>
         // 15賞球は入賞1発を差し引き、純増14発/カウントで計算する
@@ -2131,6 +2526,40 @@
                 isLT: false,
                 ltChallengeRate: 0, ltFirstPayout: 0, ltEndPayout: 0,
                 stContinueRate: 0.77
+            },
+            shigotonin6: {
+                name: "ぱちんこ 必殺仕事人Ⅵ",
+                shortName: "仕事人Ⅵ",
+                hitProb: 1 / 319.9,
+                stHitProb: 1 / 88.3,
+                hesoPayouts: [
+                    { prob: 0.46, payout: netPayout(450), st: true, label: "必殺大当り" },
+                    { prob: 0.08, payout: 0, st: true, label: "お突捕獲" },
+                    { prob: 0.46, payout: netPayout(450), st: false, label: "激闘大当り" }
+                ],
+                denchuPayouts: [
+                    { prob: 1.0, payout: netPayout(1500) }
+                ],
+                jitanHitPayouts: [
+                    { prob: 1.0, payout: netPayout(1500) }
+                ],
+                upperRushPayouts: [
+                    { prob: 0.50, payout: netPayout(6000), stayUpper: true },
+                    { prob: 0.50, payout: netPayout(3000), stayUpper: false }
+                ],
+                stSpins: 120,
+                jitanSpins: 100,
+                jitanHitProb: 1 / 399.9,
+                jitanRotation1k: 30,
+                zanhoCount: 0,
+                chargeProb: 0, chargePayout: 0, chargeStRate: 0,
+                firstRushUpgradeRate: 0.50,
+                rushUpgradeRate: 0.33,
+                jitanUpgradeRate: 0.33,
+                upperRushName: "必殺RUSH～中村主水出陣～",
+                isLT: false,
+                ltChallengeRate: 0, ltFirstPayout: 0, ltEndPayout: 0,
+                stContinueRate: 0.75
             }
         };
 
@@ -2144,7 +2573,8 @@
                 ghoul: 'HYPER喰種RUSH',
                 oumi5: '確変',
                 hokuto4: '真・幻闘RUSH',
-                rezero2: '強欲RUSH'
+                rezero2: '強欲RUSH',
+                shigotonin6: '必殺RUSH'
             };
             return rushNames[machineKey] || 'RUSH';
         }
@@ -2196,6 +2626,9 @@
         }
 
         function jitanHitEntries(spec) {
+            if (spec.jitanHitPayouts && spec.jitanHitPayouts.length > 0) {
+                return spec.jitanHitPayouts;
+            }
             const hasJitanSpecificProb = spec.jitanHitProb !== undefined;
             const rushHesoEntries = spec.hesoPayouts.filter(item => item.st);
             const normalHesoEntries = spec.hesoPayouts.filter(item => !item.st);
@@ -2217,9 +2650,79 @@
             return 1 - Math.pow(1 - spec.stHitProb, spec.stSpins);
         }
 
+        function expectedLayeredRushProfitYen(spec, rotation1k, totalSpins) {
+            const qRush = rushHitRate(spec);
+            const denchuExpected = expectedEntriesPayout(denchuEntries(spec), spec);
+            const upperEntries = normalizeEntries(spec.upperRushPayouts);
+            const upperExpected = expectedEntriesPayout(upperEntries, spec);
+            const stayUpperProb = upperEntries.reduce(
+                (sum, item) => sum + (item.stayUpper ? item.prob : 0),
+                0
+            );
+            const returnToRushProb = 1 - stayUpperProb;
+            const upgradeRate = spec.rushUpgradeRate || 0;
+
+            // 通常RUSH（2回目以降）と上位RUSHの期待出玉を連立して解く。
+            const rushDenominator = Math.max(1e-9, 1 - qRush * (1 - upgradeRate));
+            const rushConstant = qRush * denchuExpected / rushDenominator;
+            const rushUpperCoefficient = qRush * upgradeRate / rushDenominator;
+            const upperDenominator = Math.max(
+                1e-9,
+                1 - qRush * stayUpperProb - qRush * returnToRushProb * rushUpperCoefficient
+            );
+            const upperRushValue = (
+                qRush * upperExpected
+                + qRush * returnToRushProb * rushConstant
+            ) / upperDenominator;
+            const recurringRushValue = rushConstant + rushUpperCoefficient * upperRushValue;
+            const firstUpgradeRate = spec.firstRushUpgradeRate ?? upgradeRate;
+            const firstRushValue = qRush * (
+                denchuExpected
+                + firstUpgradeRate * upperRushValue
+                + (1 - firstUpgradeRate) * recurringRushValue
+            );
+
+            const jitanProb = spec.jitanHitProb ?? spec.hitProb;
+            const qJitan = spec.jitanSpins
+                ? 1 - Math.pow(1 - jitanProb, spec.jitanSpins)
+                : 0;
+            const jitanUpgradeRate = spec.jitanUpgradeRate ?? upgradeRate;
+            const jitanHitValue = expectedEntriesPayout(jitanHitEntries(spec), spec)
+                + jitanUpgradeRate * upperRushValue
+                + (1 - jitanUpgradeRate) * recurringRushValue;
+            const jitanValue = qJitan * jitanHitValue;
+
+            const hesoValue = spec.hesoPayouts.reduce((sum, item) => {
+                const afterValue = item.st ? firstRushValue : jitanValue;
+                return sum + item.prob * (expectedEntryPayout(item, spec) + afterValue);
+            }, 0);
+            const chargeValue = (spec.chargePayout || 0)
+                + (spec.chargeStRate || 0) * firstRushValue;
+
+            const jitanEpisodeSpins = truncatedGeometricSpins(jitanProb, spec.jitanSpins || 0);
+            const jitanEntryRate = spec.hesoPayouts.reduce(
+                (sum, item) => sum + (item.st ? 0 : item.prob),
+                0
+            );
+            const expectedJitanSpinsPerNormalSpin = spec.hitProb * jitanEntryRate * jitanEpisodeSpins;
+            const normalSpins = totalSpins / (1 + expectedJitanSpinsPerNormalSpin);
+            const jitanSpinsTotal = totalSpins - normalSpins;
+            const normalCost = normalSpins * (250 / rotation1k);
+            const jitanCost = jitanSpinsTotal * (250 / (spec.jitanRotation1k || rotation1k));
+            const expectedBalls = normalSpins * (
+                spec.hitProb * hesoValue
+                + (spec.chargeProb || 0) * chargeValue
+            ) - normalCost - jitanCost;
+
+            return Math.round(expectedBalls * 4);
+        }
+
         function expectedProfitYen(machineKey, rotation1k, totalSpins) {
             const spec = SPECS[machineKey];
             if (!spec || !rotation1k || !totalSpins) return 0;
+            if (spec.upperRushPayouts) {
+                return expectedLayeredRushProfitYen(spec, rotation1k, totalSpins);
+            }
 
             const denchuExpected = expectedEntriesPayout(denchuEntries(spec), spec);
             const qRush = rushHitRate(spec);
@@ -2284,11 +2787,16 @@
         let lastRotations = 0;
         let effectTimer = null;
         let cutInTimer = null;
+        let globalRankingCandidate = null;
+        let globalRankingRegistered = false;
+        let globalRankingCategory = 'balls';
+        let globalRankingLoadSequence = 0;
         let currentStageMode = {
             type: 'idle',
             title: 'READY',
             subtitle: '待機中'
         };
+        const GLOBAL_RANKING_NICKNAME_KEY = 'pachinko_global_ranking_nickname';
 
         function getProgressText() {
             if (!currentTotalSpins) return '待機中';
@@ -2297,6 +2805,264 @@
 
         function setMachineTheme(machineKey) {
             document.body.dataset.machine = machineKey;
+        }
+
+        async function fetchRankingJson(url, options = {}) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 6000);
+            try {
+                const response = await fetch(url, { ...options, signal: controller.signal });
+                let payload = {};
+                try {
+                    payload = await response.json();
+                } catch {
+                    payload = {};
+                }
+                if (!response.ok) {
+                    throw new Error(payload.error || 'ランキングに接続できませんでした。');
+                }
+                return payload;
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('ランキングの通信がタイムアウトしました。');
+                }
+                throw error;
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        }
+
+        async function requestLeaderboardRun(machineKey, spins, rotation1k) {
+            try {
+                return await fetchRankingJson('/api/leaderboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'start',
+                        machine: machineKey,
+                        spins,
+                        rotation1k
+                    })
+                });
+            } catch {
+                return null;
+            }
+        }
+
+        function setGlobalRankingStatus(message = '', type = '') {
+            const status = document.getElementById('globalRankingStatus');
+            status.textContent = message;
+            status.className = `global-ranking-status${type ? ` is-${type}` : ''}`;
+        }
+
+        function setGlobalRankingRowsMessage(message) {
+            const rows = document.getElementById('globalRankingRows');
+            const row = document.createElement('tr');
+            const cell = document.createElement('td');
+            cell.className = 'global-ranking-empty';
+            cell.colSpan = 5;
+            cell.textContent = message;
+            row.appendChild(cell);
+            rows.replaceChildren(row);
+        }
+
+        function renderGlobalRanking(entries) {
+            if (!Array.isArray(entries) || entries.length === 0) {
+                setGlobalRankingRowsMessage('まだ記録がありません');
+                return;
+            }
+
+            const rows = document.getElementById('globalRankingRows');
+            const fragment = document.createDocumentFragment();
+            entries.forEach((entry, index) => {
+                const row = document.createElement('tr');
+                const rank = document.createElement('td');
+                const nickname = document.createElement('td');
+                const score = document.createElement('td');
+                const condition = document.createElement('td');
+                const date = document.createElement('td');
+
+                rank.className = 'global-ranking-rank';
+                rank.textContent = `#${Number(entry.rank) || index + 1}`;
+                nickname.className = 'global-ranking-name';
+                nickname.textContent = String(entry.nickname || '---');
+                score.className = 'global-ranking-score';
+                score.textContent = globalRankingCategory === 'drought'
+                    ? `${Number(entry.maxDrought || 0).toLocaleString()}回転`
+                    : `${Number(entry.balls || 0).toLocaleString()}発`;
+                condition.className = 'global-ranking-condition';
+                condition.textContent = `${Number(entry.spins || 0).toLocaleString()}回 / 1k${Number(entry.rotation1k || 0)}`;
+                date.className = 'global-ranking-date';
+                const createdAt = new Date(entry.createdAt);
+                date.textContent = Number.isNaN(createdAt.getTime())
+                    ? '---'
+                    : createdAt.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+
+                row.append(rank, nickname, score, condition, date);
+                fragment.appendChild(row);
+            });
+            rows.replaceChildren(fragment);
+        }
+
+        function setGlobalRankingCategory(category) {
+            if (category !== 'balls' && category !== 'drought') return;
+            globalRankingCategory = category;
+            const isDrought = category === 'drought';
+            document.querySelectorAll('[data-ranking-category]').forEach((button) => {
+                button.setAttribute('aria-pressed', String(button.dataset.rankingCategory === category));
+            });
+            document.getElementById('globalRankingHeadingLabel').textContent = isDrought
+                ? '大ハマりランキング'
+                : '出玉ランキング';
+            document.getElementById('globalRankingMetricHeader').textContent = isDrought
+                ? '最大ハマり'
+                : '出玉';
+            document.getElementById('globalRankingNote').textContent = isDrought
+                ? '1日実行中の通常時最大ハマり回転数で順位を決定。時短・RUSHは含まず、同一回線は機種ごとの自己ベスト1件を表示します。'
+                : '1日実行の最終持ち玉で順位を決定。同一回線は機種ごとの自己ベスト1件を表示します。';
+        }
+
+        async function loadGlobalRanking(machineKey) {
+            const sequence = ++globalRankingLoadSequence;
+            const category = globalRankingCategory;
+            setGlobalRankingRowsMessage('読み込み中...');
+            try {
+                const payload = await fetchRankingJson(
+                    `/api/leaderboard?machine=${encodeURIComponent(machineKey)}&category=${encodeURIComponent(category)}`
+                );
+                if (sequence === globalRankingLoadSequence && category === globalRankingCategory) {
+                    renderGlobalRanking(payload.entries);
+                }
+            } catch (error) {
+                if (sequence === globalRankingLoadSequence) {
+                    setGlobalRankingRowsMessage(error.message);
+                }
+            }
+        }
+
+        function updateGlobalRankingCandidate() {
+            const resultButton = document.getElementById('globalRankingResultBtn');
+            const submitButton = document.getElementById('globalRankingSubmitBtn');
+            const candidate = document.getElementById('globalRankingCandidate');
+            const available = Boolean(globalRankingCandidate);
+
+            resultButton.disabled = !available;
+            resultButton.textContent = available
+                ? '共有ランキングに登録'
+                : globalRankingRegistered
+                    ? 'ランキング登録済み'
+                    : '完走後にランキング登録';
+            submitButton.disabled = !available;
+
+            if (!available) {
+                candidate.textContent = globalRankingRegistered
+                    ? 'この完走結果は登録済みです。'
+                    : '1日実行を最後まで完走すると登録できます。';
+                return;
+            }
+
+            const machineName = SPECS[globalRankingCandidate.result.machineKey].shortName;
+            candidate.replaceChildren(
+                document.createTextNode(`${machineName} / ${globalRankingCandidate.result.rotations.toLocaleString()}回転 — 出玉 `)
+            );
+            const ballsScore = document.createElement('strong');
+            ballsScore.textContent = `${globalRankingCandidate.result.finalBalls.toLocaleString()}発`;
+            candidate.append(
+                ballsScore,
+                document.createTextNode(' / 最大ハマり '),
+            );
+            const droughtScore = document.createElement('strong');
+            droughtScore.textContent = `${globalRankingCandidate.result.maxDrought.toLocaleString()}回転`;
+            candidate.appendChild(droughtScore);
+        }
+
+        function clearGlobalRankingCandidate() {
+            globalRankingCandidate = null;
+            globalRankingRegistered = false;
+            updateGlobalRankingCandidate();
+        }
+
+        function openGlobalRanking(useCandidate = false) {
+            const dialog = document.getElementById('globalRankingDialog');
+            const machineSelect = document.getElementById('globalRankingMachine');
+            const machineKey = useCandidate && globalRankingCandidate
+                ? globalRankingCandidate.result.machineKey
+                : document.getElementById('machine').value;
+            machineSelect.value = machineKey;
+            updateGlobalRankingCandidate();
+            setGlobalRankingStatus();
+            if (!dialog.open) {
+                dialog.showModal();
+            }
+            loadGlobalRanking(machineKey);
+        }
+
+        function loadSavedRankingNickname() {
+            try {
+                return localStorage.getItem(GLOBAL_RANKING_NICKNAME_KEY) || '';
+            } catch {
+                return '';
+            }
+        }
+
+        function saveRankingNickname(nickname) {
+            try {
+                localStorage.setItem(GLOBAL_RANKING_NICKNAME_KEY, nickname);
+            } catch {
+                // Private browsing may make storage unavailable; ranking submission still succeeds.
+            }
+        }
+
+        async function submitGlobalRanking(event) {
+            event.preventDefault();
+            if (!globalRankingCandidate) {
+                setGlobalRankingStatus('登録できる完走結果がありません。', 'error');
+                return;
+            }
+
+            const nicknameInput = document.getElementById('globalRankingNickname');
+            const submitButton = document.getElementById('globalRankingSubmitBtn');
+            const nickname = nicknameInput.value.trim();
+            const candidate = globalRankingCandidate;
+            const submittedCategory = globalRankingCategory;
+            submitButton.disabled = true;
+            setGlobalRankingStatus('登録中...');
+
+            try {
+                const payload = await fetchRankingJson('/api/leaderboard', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        action: 'submit',
+                        runId: candidate.runId,
+                        nickname,
+                        balls: candidate.result.finalBalls,
+                        maxDrought: candidate.result.maxDrought,
+                        category: submittedCategory
+                    })
+                });
+                saveRankingNickname(nickname);
+                document.getElementById('globalRankingMachine').value = payload.machine;
+                if (globalRankingCategory === submittedCategory) {
+                    renderGlobalRanking(payload.entries);
+                } else {
+                    loadGlobalRanking(payload.machine);
+                }
+                globalRankingCandidate = null;
+                globalRankingRegistered = true;
+                updateGlobalRankingCandidate();
+                const rankedCategories = [
+                    payload.ranks?.balls ? `出玉 ${payload.ranks.balls}位` : '',
+                    payload.ranks?.drought ? `大ハマり ${payload.ranks.drought}位` : ''
+                ].filter(Boolean);
+                const message = rankedCategories.length
+                    ? `登録しました。${rankedCategories.join(' / ')}です。`
+                    : '登録しました。自己ベストは更新されませんでした。';
+                setGlobalRankingStatus(message, 'success');
+            } catch (error) {
+                setGlobalRankingStatus(error.message, 'error');
+                submitButton.disabled = false;
+            }
         }
 
         function setStage(type, title, subtitle = '') {
@@ -2898,23 +3664,12 @@
 
         function getCumulativeProfitSeries() {
             let cumulative = 0;
-            let cumulativeExpected = 0;
             return loadSessionHistory().map((session, index) => {
-                const profit = Number(session.profit) || 0;
-                const expected = Number.isFinite(session.expected)
-                    ? session.expected
-                    : Number.isFinite(session.analyticalExpected)
-                        ? session.analyticalExpected
-                        : 0;
-                cumulative += profit;
-                cumulativeExpected += expected;
+                cumulative += session.profit;
                 return {
                     index: index + 1,
-                    profit,
-                    expected,
-                    cumulative,
-                    cumulativeExpected,
-                    deviation: cumulative - cumulativeExpected
+                    profit: session.profit,
+                    cumulative
                 };
             });
         }
@@ -2927,7 +3682,6 @@
             const currentEl = document.getElementById('chartCurrent');
             const peakEl = document.getElementById('chartPeak');
             const lowEl = document.getElementById('chartLow');
-            const deviationEl = document.getElementById('chartDeviation');
             const ctx = canvas.getContext('2d');
             const rect = canvas.getBoundingClientRect();
             const width = Math.max(1, rect.width || canvas.width);
@@ -2944,36 +3698,31 @@
                 currentEl.textContent = '±0円';
                 peakEl.textContent = '±0円';
                 lowEl.textContent = '±0円';
-                if (deviationEl) deviationEl.textContent = '±0円';
                 drawEmptyChartGrid(ctx, width, height);
                 return;
             }
 
             panel.classList.add('has-data');
             const cumulativeValues = series.map(point => point.cumulative);
-            const expectedValues = series.map(point => point.cumulativeExpected);
             const current = cumulativeValues[cumulativeValues.length - 1];
-            const expectedCurrent = expectedValues[expectedValues.length - 1];
-            const currentDeviation = current - expectedCurrent;
             const peak = Math.max(0, ...cumulativeValues);
             const low = Math.min(0, ...cumulativeValues);
             currentEl.textContent = formatSignedYen(current);
             peakEl.textContent = formatSignedYen(peak);
             lowEl.textContent = formatSignedYen(low);
-            if (deviationEl) deviationEl.textContent = formatSignedYen(currentDeviation);
 
             const padding = { top: 14, right: 12, bottom: 22, left: 42 };
             const plotWidth = width - padding.left - padding.right;
             const plotHeight = height - padding.top - padding.bottom;
-            let minValue = Math.min(low, 0, ...expectedValues);
-            let maxValue = Math.max(peak, 0, ...expectedValues);
+            let minValue = low;
+            let maxValue = peak;
             if (minValue === maxValue) {
                 minValue -= 1000;
                 maxValue += 1000;
             }
             const range = maxValue - minValue;
             const yFor = value => padding.top + (maxValue - value) / range * plotHeight;
-            const points = [{ index: 0, cumulative: 0, cumulativeExpected: 0 }, ...series];
+            const points = [{ index: 0, cumulative: 0 }, ...series];
             const xFor = position => padding.left + (points.length === 1 ? plotWidth : position / (points.length - 1) * plotWidth);
             const zeroY = yFor(0);
 
@@ -2999,21 +3748,6 @@
             areaGradient.addColorStop(1, `${dangerColor}38`);
             ctx.fillStyle = areaGradient;
             ctx.fill();
-            ctx.restore();
-
-            const expectedColor = themeColor('--accent-3', '#ffbe18');
-            ctx.save();
-            ctx.beginPath();
-            points.forEach((point, index) => {
-                const x = xFor(index);
-                const y = yFor(point.cumulativeExpected);
-                if (index === 0) ctx.moveTo(x, y);
-                else ctx.lineTo(x, y);
-            });
-            ctx.lineWidth = 1.6;
-            ctx.strokeStyle = `${expectedColor}cc`;
-            if (ctx.setLineDash) ctx.setLineDash([6, 5]);
-            ctx.stroke();
             ctx.restore();
 
             ctx.save();
@@ -3092,6 +3826,8 @@
             updateDeviationDisplay();
             moveToLatestSession();
             renderCalendar();
+            document.getElementById('globalRankingNickname').value = loadSavedRankingNickname();
+            updateGlobalRankingCandidate();
         });
 
         let chartResizeTimer = null;
@@ -3272,7 +4008,17 @@
             finalResult.className = 'final-result';
         }
 
-        function buildSessionResult(machineKey, rotations, balls, investment, hitCount, maxChain, maxPayout, plannedSpins = rotations) {
+        function buildSessionResult(
+            machineKey,
+            rotations,
+            balls,
+            investment,
+            hitCount,
+            maxChain,
+            maxPayout,
+            plannedSpins = rotations,
+            maxDrought = 0
+        ) {
             const finalBalls = Math.floor(balls);
             return {
                 machineKey,
@@ -3284,6 +4030,7 @@
                 hitCount,
                 maxChain,
                 maxPayout,
+                maxDrought,
                 finalProfit: finalBalls * 4 - investment
             };
         }
@@ -3312,6 +4059,7 @@
             addLog(`【最終結果】`);
             addLog(`総回転数: ${result.rotations.toLocaleString()}回転`);
             addLog(`初当り: ${result.hitCount}回`);
+            addLog(`最大ハマり: ${result.maxDrought.toLocaleString()}回転`);
             addLog(`持ち玉: ${result.finalBalls.toLocaleString()}発`);
             addLog(`収支: ${(result.finalProfit >= 0 ? '+' : '')}${result.finalProfit.toLocaleString()}円`);
         }
@@ -3331,6 +4079,50 @@
         function updateFastRecords(session, chainCount, chainPayout) {
             session.maxSessionChain = Math.max(session.maxSessionChain, chainCount);
             session.maxSessionPayout = Math.max(session.maxSessionPayout, chainPayout);
+        }
+
+        function drawRushHitSpin(spec) {
+            if (spec.isLT) {
+                return Math.random() < spec.stContinueRate ? 1 : 0;
+            }
+            for (let stSpin = 1; stSpin <= spec.stSpins; stSpin++) {
+                if (Math.random() < spec.stHitProb) return stSpin;
+            }
+            return 0;
+        }
+
+        function processLayeredRushFast(session, spec, firstPayout, entryMode = 'direct') {
+            const chain = { count: 1, payout: firstPayout };
+            const upperEntries = normalizeEntries(spec.upperRushPayouts);
+            let state = 'base';
+            let firstBaseHit = entryMode === 'direct';
+
+            if (
+                entryMode === 'jitan'
+                && Math.random() < (spec.jitanUpgradeRate ?? spec.rushUpgradeRate ?? 0)
+            ) {
+                state = 'upper';
+            }
+
+            while (drawRushHitSpin(spec) > 0) {
+                chain.count++;
+                let item;
+                if (state === 'upper') {
+                    item = drawEntry(upperEntries);
+                    state = item.stayUpper ? 'upper' : 'base';
+                } else {
+                    item = getDenchuResult(spec);
+                    const upgradeRate = firstBaseHit
+                        ? (spec.firstRushUpgradeRate ?? spec.rushUpgradeRate ?? 0)
+                        : (spec.rushUpgradeRate || 0);
+                    firstBaseHit = false;
+                    state = Math.random() < upgradeRate ? 'upper' : 'base';
+                }
+                session.myBalls += item.payout;
+                chain.payout += item.payout;
+            }
+
+            updateFastRecords(session, chain.count, chain.payout);
         }
 
         function processStandardRushFast(session, spec, firstResult) {
@@ -3410,9 +4202,13 @@
                 const item = getJitanHitResult(spec);
                 session.myBalls += item.payout;
                 updateFastRecords(session, 1, item.payout);
-                const needsJitan = processStandardRushFast(session, spec, item);
-                if (needsJitan) {
-                    processJitanFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
+                if (spec.upperRushPayouts) {
+                    processLayeredRushFast(session, spec, item.payout, 'jitan');
+                } else {
+                    const needsJitan = processStandardRushFast(session, spec, item);
+                    if (needsJitan) {
+                        processJitanFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
+                    }
                 }
                 return true;
             }
@@ -3458,15 +4254,18 @@
                 totalInvestment: 0,
                 hitCount: 0,
                 maxSessionChain: 0,
-                maxSessionPayout: 0
+                maxSessionPayout: 0,
+                maxDrought: 0
             };
 
             while (session.rotations < totalSpins) {
                 let chargeBousou = false;
                 let figureHit = false;
+                let normalDrought = 0;
 
                 while (session.rotations < totalSpins) {
                     session.rotations++;
+                    normalDrought++;
                     buyBalls(session, ballsPerSpin, ballsPer1k);
                     const normalOutcome = drawNormalOutcome(spec);
 
@@ -3484,6 +4283,7 @@
                     }
                 }
 
+                session.maxDrought = Math.max(session.maxDrought, normalDrought);
                 if (!chargeBousou && !figureHit) break;
 
                 session.hitCount++;
@@ -3505,7 +4305,9 @@
                 updateFastRecords(session, 1, firstPayout);
 
                 if (stEntered) {
-                    if (spec.ltChallengeRate > 0) {
+                    if (spec.upperRushPayouts) {
+                        processLayeredRushFast(session, spec, firstPayout);
+                    } else if (spec.ltChallengeRate > 0) {
                         processChallengeRushFast(session, spec, firstPayout);
                     } else {
                         const needsJitan = processStandardRushFast(session, spec, firstResult);
@@ -3530,7 +4332,8 @@
                 session.hitCount,
                 session.maxSessionChain,
                 session.maxSessionPayout,
-                totalSpins
+                totalSpins,
+                session.maxDrought
             );
         }
 
@@ -3638,6 +4441,8 @@
             setRunControls('single');
 
             const { machineKey, spec, totalSpins, rotation1k, speedValue } = getRunConfig();
+            clearGlobalRankingCandidate();
+            const leaderboardRunPromise = requestLeaderboardRun(machineKey, totalSpins, rotation1k);
             currentTotalSpins = totalSpins;
             lastRotations = 0;
             setMachineTheme(machineKey);
@@ -3662,6 +4467,7 @@
             let hitCount = 0;
             let maxSessionChain = 0;  // セッション中の最大連チャン
             let maxSessionPayout = 0; // セッション中の一撃最高出玉
+            let maxDrought = 0;       // 通常時の最大連続回転数
 
             function consumeBalls(amount) {
                 if (myBalls >= amount) {
@@ -3673,6 +4479,84 @@
                     totalInvestment += investUnits * 1000;
                     myBalls += investUnits * ballsPer1k - shortage;
                 }
+            }
+
+            async function runLayeredRush(firstPayout, entryMode = 'direct') {
+                const rushName = getRushName(machineKey);
+                const upperRushName = spec.upperRushName || '上位RUSH';
+                const upperEntries = normalizeEntries(spec.upperRushPayouts);
+                let state = 'base';
+                let firstBaseHit = entryMode === 'direct';
+                let chainCount = 1;
+                let chainPayout = firstPayout;
+
+                addLog(`>>> ${rushName}突入！（${spec.stSpins}回転）`, 'log-st');
+                setState(rushName, `${spec.stSpins}回転`);
+                playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
+                await sleep(baseDelay * 5);
+
+                if (
+                    entryMode === 'jitan'
+                    && Math.random() < (spec.jitanUpgradeRate ?? spec.rushUpgradeRate ?? 0)
+                ) {
+                    state = 'upper';
+                    addLog(`🔥 ${upperRushName}突入！`, 'log-st');
+                    setState(upperRushName, `${spec.stSpins}回転`);
+                    playEffect('rush', upperRushName, '突入', 1300);
+                    await sleep(baseDelay * 4);
+                }
+
+                while (!shouldStop) {
+                    const stSpin = drawRushHitSpin(spec);
+                    if (!stSpin) break;
+
+                    chainCount++;
+                    let item;
+                    if (state === 'upper') {
+                        item = drawEntry(upperEntries);
+                        state = item.stayUpper ? 'upper' : 'base';
+                        const transition = item.stayUpper
+                            ? `${upperRushName}継続`
+                            : `${rushName}へ`;
+                        addLog(
+                            `  ${chainCount}連目: ${stSpin}回転 +${item.payout.toLocaleString()}発 → ${transition}`,
+                            'log-chain'
+                        );
+                    } else {
+                        item = getDenchuResult(spec);
+                        const upgradeRate = firstBaseHit
+                            ? (spec.firstRushUpgradeRate ?? spec.rushUpgradeRate ?? 0)
+                            : (spec.rushUpgradeRate || 0);
+                        firstBaseHit = false;
+                        const upgraded = Math.random() < upgradeRate;
+                        state = upgraded ? 'upper' : 'base';
+                        addLog(
+                            `  ${chainCount}連目: ST${stSpin}回転 +${item.payout.toLocaleString()}発`,
+                            'log-chain'
+                        );
+                        if (upgraded) {
+                            addLog(`🔥 ${upperRushName}突入！`, 'log-st');
+                        }
+                    }
+
+                    myBalls += item.payout;
+                    chainPayout += item.payout;
+                    updateDisplay(rotations, myBalls, totalInvestment);
+                    const activeRushName = state === 'upper' ? upperRushName : rushName;
+                    setState(activeRushName, `${spec.stSpins}回転`);
+                    playEffect(
+                        state === 'upper' ? 'rush' : 'chain',
+                        state === 'upper' ? upperRushName : `${chainCount}連`,
+                        `+${item.payout.toLocaleString()}発`,
+                        900
+                    );
+                    flashStat('ballsDisplay');
+                    await sleep(baseDelay * 4);
+                }
+
+                addLog(`${state === 'upper' ? upperRushName : rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
+                maxSessionChain = Math.max(maxSessionChain, chainCount);
+                maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
             }
 
             // メインループ
@@ -3717,6 +4601,7 @@
                     }
                 }
 
+                maxDrought = Math.max(maxDrought, spinsToHit);
                 if (shouldStop) break;
                 if (!chargeBousou && !figureHit) break;
 
@@ -3737,8 +4622,9 @@
                     firstPayout = firstResult.payout;
                     stEntered = result.st;
                     myBalls += firstPayout;
-                    addLog(`🎰【当たり${hitCount}】${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 'log-hit');
-                    playEffect('hit', '大当り', `${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 1300);
+                    const hitLabel = result.label || '';
+                    addLog(`🎰【当たり${hitCount}】${hitLabel ? `${hitLabel} ` : ''}${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 'log-hit');
+                    playEffect('hit', hitLabel || '大当り', `${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 1300);
                 }
                 flashStat('ballsDisplay');
                 flashStat('profitDisplay');
@@ -3761,7 +4647,9 @@
                         addLog(`  無双連撃 +${firstBonus.payout.toLocaleString()}発`, 'log-chain');
                     }
 
-                    if (isLtChallenge) {
+                    if (spec.upperRushPayouts) {
+                        await runLayeredRush(firstPayout);
+                    } else if (isLtChallenge) {
                         // チャレンジ機種の場合（牙狼系・喰種）
                         const challengeName = getChallengeName(machineKey);
                         const rushName = getRushName(machineKey);
@@ -4057,73 +4945,77 @@
                         flashStat('ballsDisplay');
                         await sleep(baseDelay * 3);
 
-                        // RUSH突入
-                        const rushName = getRushName(machineKey);
-                        addLog(`>>> ${rushName}突入！（${spec.stSpins}回転）`, 'log-st');
-                        setState(rushName, `${spec.stSpins}回転`);
-                        playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
-                        await sleep(baseDelay * 5);
+                        if (spec.upperRushPayouts) {
+                            await runLayeredRush(payout, 'jitan');
+                        } else {
+                            // RUSH突入
+                            const rushName = getRushName(machineKey);
+                            addLog(`>>> ${rushName}突入！（${spec.stSpins}回転）`, 'log-st');
+                            setState(rushName, `${spec.stSpins}回転`);
+                            playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
+                            await sleep(baseDelay * 5);
 
-                        let chainCount = 1;
-                        let chainPayout = payout;
-                        const firstBonus = drawRenzokuBonus(spec, jitanItem);
-                        if (firstBonus.payout > 0) {
-                            myBalls += firstBonus.payout;
-                            chainCount += firstBonus.count;
-                            chainPayout += firstBonus.payout;
-                            addLog(`  無双連撃 +${firstBonus.payout.toLocaleString()}発`, 'log-chain');
-                        }
+                            let chainCount = 1;
+                            let chainPayout = payout;
+                            const firstBonus = drawRenzokuBonus(spec, jitanItem);
+                            if (firstBonus.payout > 0) {
+                                myBalls += firstBonus.payout;
+                                chainCount += firstBonus.count;
+                                chainPayout += firstBonus.payout;
+                                addLog(`  無双連撃 +${firstBonus.payout.toLocaleString()}発`, 'log-chain');
+                            }
 
-                        while (!shouldStop) {
-                            let stSpin = 0;
-                            let hitInSt = false;
+                            while (!shouldStop) {
+                                let stSpin = 0;
+                                let hitInSt = false;
 
-                            if (spec.isLT) {
-                                hitInSt = Math.random() < spec.stContinueRate;
-                                stSpin = 1;
-                            } else {
-                                for (stSpin = 1; stSpin <= spec.stSpins; stSpin++) {
-                                    if (Math.random() < spec.stHitProb) {
-                                        hitInSt = true;
-                                        break;
+                                if (spec.isLT) {
+                                    hitInSt = Math.random() < spec.stContinueRate;
+                                    stSpin = 1;
+                                } else {
+                                    for (stSpin = 1; stSpin <= spec.stSpins; stSpin++) {
+                                        if (Math.random() < spec.stHitProb) {
+                                            hitInSt = true;
+                                            break;
+                                        }
                                     }
                                 }
+
+                                if (!hitInSt) break;
+
+                                chainCount++;
+                                const item = getDenchuResult(spec);
+                                const p = item.payout;
+                                myBalls += p;
+                                chainPayout += p;
+                                const bonus = drawRenzokuBonus(spec, item);
+                                if (bonus.payout > 0) {
+                                    myBalls += bonus.payout;
+                                    chainCount += bonus.count;
+                                    chainPayout += bonus.payout;
+                                }
+                                updateDisplay(rotations, myBalls, totalInvestment);
+                                const totalPayout = p + bonus.payout;
+                                const spinText = spec.isLT ? `LT${stSpin}回転` : `ST${stSpin}回転`;
+                                addLog(`  ${chainCount}連目: ${spinText} +${totalPayout.toLocaleString()}発`, 'log-chain');
+                                playEffect('chain', `${chainCount}連`, `+${totalPayout.toLocaleString()}発`, 800);
+                                flashStat('ballsDisplay');
+                                await sleep(baseDelay * 4);
                             }
 
-                            if (!hitInSt) break;
-
-                            chainCount++;
-                            const item = getDenchuResult(spec);
-                            const p = item.payout;
-                            myBalls += p;
-                            chainPayout += p;
-                            const bonus = drawRenzokuBonus(spec, item);
-                            if (bonus.payout > 0) {
-                                myBalls += bonus.payout;
-                                chainCount += bonus.count;
-                                chainPayout += bonus.payout;
+                            if (spec.ltEndPayout > 0) {
+                                myBalls += spec.ltEndPayout;
+                                chainPayout += spec.ltEndPayout;
+                                updateDisplay(rotations, myBalls, totalInvestment);
+                                addLog(`  LT転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
+                                flashStat('ballsDisplay');
+                                await sleep(baseDelay * 2);
                             }
-                            updateDisplay(rotations, myBalls, totalInvestment);
-                            const totalPayout = p + bonus.payout;
-                            const spinText = spec.isLT ? `LT${stSpin}回転` : `ST${stSpin}回転`;
-                            addLog(`  ${chainCount}連目: ${spinText} +${totalPayout.toLocaleString()}発`, 'log-chain');
-                            playEffect('chain', `${chainCount}連`, `+${totalPayout.toLocaleString()}発`, 800);
-                            flashStat('ballsDisplay');
-                            await sleep(baseDelay * 4);
-                        }
 
-                        if (spec.ltEndPayout > 0) {
-                            myBalls += spec.ltEndPayout;
-                            chainPayout += spec.ltEndPayout;
-                            updateDisplay(rotations, myBalls, totalInvestment);
-                            addLog(`  LT転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
-                            flashStat('ballsDisplay');
-                            await sleep(baseDelay * 2);
+                            addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
+                            maxSessionChain = Math.max(maxSessionChain, chainCount);
+                            maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
                         }
-
-                        addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
-                        maxSessionChain = Math.max(maxSessionChain, chainCount);
-                        maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
                     } else {
                         // 残保留チェック
                         if (spec.zanhoCount > 0) {
@@ -4206,11 +5098,22 @@
                 hitCount,
                 maxSessionChain,
                 maxSessionPayout,
-                totalSpins
+                totalSpins,
+                maxDrought
             );
 
             logFinalResult(result);
             showFinalResult(result);
+
+            const leaderboardRun = await leaderboardRunPromise;
+            if (!shouldStop && rotations >= totalSpins && leaderboardRun?.runId) {
+                globalRankingCandidate = {
+                    runId: leaderboardRun.runId,
+                    result,
+                    rotation1k
+                };
+                updateGlobalRankingCandidate();
+            }
 
             // 累計収支に追加
             recordSessionOutcome(result, scopeKey);
@@ -4236,6 +5139,7 @@
             const scopeKey = currentScopeKey();
             const { machineKey, spec, totalSpins, rotation1k } = getRunConfig();
             const days = parseInt(document.getElementById('autoDays').value);
+            clearGlobalRankingCandidate();
             isRunning = true;
             shouldStop = false;
             setRunControls('auto');
@@ -4314,6 +5218,29 @@
 
         document.getElementById('rotation1k').addEventListener('change', onScopeChange);
         document.getElementById('totalSpins').addEventListener('change', updateDeviationDisplay);
+        document.getElementById('globalRankingOpenBtn').addEventListener('click', () => openGlobalRanking(false));
+        document.getElementById('globalRankingResultBtn').addEventListener('click', () => openGlobalRanking(true));
+        document.getElementById('globalRankingCloseBtn').addEventListener('click', () => {
+            document.getElementById('globalRankingDialog').close();
+        });
+        document.getElementById('globalRankingReloadBtn').addEventListener('click', () => {
+            loadGlobalRanking(document.getElementById('globalRankingMachine').value);
+        });
+        document.getElementById('globalRankingMachine').addEventListener('change', (event) => {
+            loadGlobalRanking(event.target.value);
+        });
+        document.querySelectorAll('[data-ranking-category]').forEach((button) => {
+            button.addEventListener('click', () => {
+                setGlobalRankingCategory(button.dataset.rankingCategory);
+                loadGlobalRanking(document.getElementById('globalRankingMachine').value);
+            });
+        });
+        document.getElementById('globalRankingForm').addEventListener('submit', submitGlobalRanking);
+        document.getElementById('globalRankingDialog').addEventListener('click', (event) => {
+            if (event.target === event.currentTarget) {
+                event.currentTarget.close();
+            }
+        });
 
         setMachineTheme(document.getElementById('machine').value);
         setStageMode('idle', 'READY', '待機中');
