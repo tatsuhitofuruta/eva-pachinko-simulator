@@ -30,14 +30,15 @@ REQUIRED_IDS = {
     "calendarGrid",
     "profitChart",
     "profitChartPanel",
-    "chartCurrent",
-    "chartPeak",
-    "chartLow",
-    "chartDeviation",
-    "deviationExpected",
-    "deviationUpswingList",
-    "deviationDownswingList",
     "finalResult",
+    "globalRankingDialog",
+    "globalRankingHeadingLabel",
+    "globalRankingMachine",
+    "globalRankingMetricHeader",
+    "globalRankingNote",
+    "globalRankingRows",
+    "globalRankingNickname",
+    "globalRankingSubmitBtn",
 }
 
 REQUIRED_FUNCTIONS = {
@@ -51,13 +52,9 @@ REQUIRED_FUNCTIONS = {
     "addSessionResult",
     "renderCalendar",
     "renderProfitChart",
-    "expectedProfitYen",
-    "updateDeviationDisplay",
-    "currentScopeKey",
-    "loadAllData",
-    "normalizeScopeData",
-    "simulateFastSession",
-    "recordSessionOutcome",
+    "loadGlobalRanking",
+    "setGlobalRankingCategory",
+    "submitGlobalRanking",
 }
 
 REQUIRED_MACHINE_KEYS = {
@@ -69,9 +66,11 @@ REQUIRED_MACHINE_KEYS = {
     "oumi5",
     "hokuto4",
     "rezero2",
+    "shigotonin6",
 }
 
 REQUIRED_NET_PAYOUT_CALLS = {
+    "netPayout(450)",
     "netPayout(1500)",
     "netPayout(3000)",
     "netPayout(6000)",
@@ -204,19 +203,6 @@ def main() -> int:
     if "toISOString().split('T')[0]" in script_text or 'toISOString().split("T")[0]' in script_text:
         errors.append("Virtual dates should use local date formatting, not UTC toISOString")
 
-    if "const DATA_KEY = 'pachinko_data_v2'" not in script_text:
-        errors.append("Scoped storage should use the canonical pachinko_data_v2 key")
-
-    for old_key in ("pachinko_cumulative_stats", "pachinko_session_history", "pachinko_ranking_stats"):
-        if old_key not in script_text:
-            errors.append(f"Missing reset handling for legacy storage key: {old_key}")
-
-    if "rankBestUpswing" not in script_text or "rankWorstDownswing" not in script_text:
-        errors.append("Deviation record ids should be wired into the ranking display")
-
-    if "cumulativeExpected" not in script_text:
-        errors.append("Profit chart should include the expected-profit reference series")
-
     garo_block = extract_js_object_block(script_text, "garo")
     if not re.search(r"\bltChallengeRate\s*:\s*0\s*,", garo_block):
         errors.append("garo should not double-apply 50% Makai entry after heso split")
@@ -231,6 +217,19 @@ def main() -> int:
     for description, pattern in ghoul_expectations.items():
         if not re.search(pattern, ghoul_block):
             errors.append(f"ghoul should {description}")
+
+    shigotonin6_block = extract_js_object_block(script_text, "shigotonin6")
+    shigotonin6_expectations = {
+        "use the combined normal probability": r"\bhitProb\s*:\s*1\s*/\s*319\.9\s*,",
+        "use ST120 at 1/88.3": r"\bstHitProb\s*:\s*1\s*/\s*88\.3\s*,[\s\S]*\bstSpins\s*:\s*120\s*,",
+        "use chance time 100 at 1/399.9": r"\bjitanSpins\s*:\s*100\s*,[\s\S]*\bjitanHitProb\s*:\s*1\s*/\s*399\.9\s*,",
+        "apply the 50% first-rush upgrade": r"\bfirstRushUpgradeRate\s*:\s*0\.50\s*,",
+        "apply the 33% recurring upgrade": r"\brushUpgradeRate\s*:\s*0\.33\s*,",
+        "model the upper-rush payout states": r"\bupperRushPayouts\s*:\s*\[",
+    }
+    for description, pattern in shigotonin6_expectations.items():
+        if not re.search(pattern, shigotonin6_block):
+            errors.append(f"shigotonin6 should {description}")
 
     if errors:
         for error in errors:

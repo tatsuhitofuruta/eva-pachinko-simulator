@@ -31,6 +31,7 @@ env/
 .vscode/
 .playwright-cli/
 .playwright-mcp/
+.wrangler/
 *.swp
 *.swo
 
