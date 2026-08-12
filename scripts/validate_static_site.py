@@ -49,7 +49,6 @@ REQUIRED_FUNCTIONS = {
     "getDenchuPayout",
     "updateDisplay",
     "setState",
-    "addSessionResult",
     "renderCalendar",
     "renderProfitChart",
     "loadGlobalRanking",
