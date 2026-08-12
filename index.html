@@ -207,6 +207,27 @@
             margin-bottom: 16px;
             box-shadow: 0 18px 42px rgba(0,0,0,0.32);
         }
+        .management-settings {
+            margin: 12px 0 16px;
+            padding: 10px;
+            border: 1px solid var(--line);
+            border-radius: 3px;
+            background: color-mix(in srgb, var(--surface) 90%, transparent);
+        }
+        .management-settings summary {
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: .04em;
+        }
+        .management-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .management-grid .control-group { min-width: 0; }
+        @media (max-width: 600px) { .management-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
         .control-row {
             display: flex;
             gap: 12px;
@@ -2002,6 +2023,35 @@
                     </div>
                 </div>
             </div>
+            <details class="management-settings" open>
+                <summary>経営設定 <small id="managementSummary">残現金 300,000円 / 打ち子 0人 / 25玉</small></summary>
+                <div class="management-grid">
+                    <div class="control-group">
+                        <label for="operatingCapital">残資金<small>CAPITAL</small></label>
+                        <input id="operatingCapital" type="number" min="0" step="1000" value="300000">
+                    </div>
+                    <div class="control-group">
+                        <label for="workers">打ち子人数<small>WORKERS</small></label>
+                        <input id="workers" type="number" min="0" max="20" step="1" value="0">
+                    </div>
+                    <div class="control-group">
+                        <label for="dailyWage">日当<small>WAGE</small></label>
+                        <input id="dailyWage" type="number" min="0" step="1000" value="15000">
+                    </div>
+                    <div class="control-group">
+                        <label for="exchangeBalls">交換玉数/100円<small>EXCHANGE</small></label>
+                        <input id="exchangeBalls" type="number" min="25" step="0.1" value="25">
+                    </div>
+                    <div class="control-group">
+                        <label for="assumedHeldRatio">想定持玉率<small>EXPECTED RHO</small></label>
+                        <input id="assumedHeldRatio" type="number" min="0" max="100" step="1" value="50">
+                    </div>
+                    <div class="control-group">
+                        <label for="replayLimit">貯玉再プレー上限/日<small>REPLAY</small></label>
+                        <input id="replayLimit" type="number" min="0" step="100" value="0">
+                    </div>
+                </div>
+            </details>
             <div class="run-actions">
                 <button class="btn btn-start" id="startBtn" onclick="startSimulation()">1日実行</button>
                 <select id="autoDays" aria-label="自動稼働日数">
@@ -2188,7 +2238,7 @@
             <details class="deviation-panel" id="deviationPanel">
                 <summary>
                     <span class="panel-title">乖離ランキング<small>DEVIATION</small></span>
-                    <span class="deviation-expected" id="deviationExpected">期待値/日: ---</span>
+                    <span class="deviation-expected" id="deviationExpected">遊技border: --- / 営業期待: --- / 最新乖離: ---</span>
                 </summary>
                 <div class="deviation-grid">
                     <div class="deviation-list">
@@ -2220,7 +2270,27 @@
                 </div>
                 <div class="final-stat">
                     <div class="final-stat-value" id="finalProfit">0</div>
-                    <div class="final-stat-label">収支</div>
+                    <div class="final-stat-label">遊技収支</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value" id="finalWage">0</div>
+                    <div class="final-stat-label">人件費</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value" id="finalOperatingProfit">0</div>
+                    <div class="final-stat-label">営業純利益</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value" id="finalActualHeldRatio">0%</div>
+                    <div class="final-stat-label">実績持玉率</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value" id="finalCapital">0</div>
+                    <div class="final-stat-label">残現金</div>
+                </div>
+                <div class="final-stat">
+                    <div class="final-stat-value" id="finalEndReason">---</div>
+                    <div class="final-stat-label">終了理由</div>
                 </div>
             </div>
             <div class="final-actions">
@@ -2650,7 +2720,7 @@
             return 1 - Math.pow(1 - spec.stHitProb, spec.stSpins);
         }
 
-        function expectedLayeredRushProfitYen(spec, rotation1k, totalSpins) {
+        function expectedLayeredRushComponents(spec, rotation1k, totalSpins) {
             const qRush = rushHitRate(spec);
             const denchuExpected = expectedEntriesPayout(denchuEntries(spec), spec);
             const upperEntries = normalizeEntries(spec.upperRushPayouts);
@@ -2696,6 +2766,7 @@
                 const afterValue = item.st ? firstRushValue : jitanValue;
                 return sum + item.prob * (expectedEntryPayout(item, spec) + afterValue);
             }, 0);
+
             const chargeValue = (spec.chargePayout || 0)
                 + (spec.chargeStRate || 0) * firstRushValue;
 
@@ -2714,14 +2785,22 @@
                 + (spec.chargeProb || 0) * chargeValue
             ) - normalCost - jitanCost;
 
-            return Math.round(expectedBalls * 4);
+            return {
+                G: expectedBalls + normalCost + jitanCost,
+                K: normalCost,
+                Q: jitanCost,
+                Y: totalSpins,
+                expectedPayoutBalls: expectedBalls + normalCost + jitanCost,
+                normalCostBalls: normalCost,
+                jitanCostBalls: jitanCost
+            };
         }
 
-        function expectedProfitYen(machineKey, rotation1k, totalSpins) {
+        function expectedBallComponents(machineKey, rotation1k, totalSpins) {
             const spec = SPECS[machineKey];
-            if (!spec || !rotation1k || !totalSpins) return 0;
+            if (!spec || !rotation1k || !totalSpins) return { G: 0, K: 0, Q: 0, Y: 0, expectedPayoutBalls: 0, normalCostBalls: 0, jitanCostBalls: 0 };
             if (spec.upperRushPayouts) {
-                return expectedLayeredRushProfitYen(spec, rotation1k, totalSpins);
+                return expectedLayeredRushComponents(spec, rotation1k, totalSpins);
             }
 
             const denchuExpected = expectedEntriesPayout(denchuEntries(spec), spec);
@@ -2748,6 +2827,15 @@
                 return sum + item.prob * (entryValue + afterValue);
             }, 0);
 
+            // エヴァ15だけは実経路にあるST終了後4保留の当選価値を期待値にも含める。
+            // 他機種の抽選・払い出しモデルには手を加えない。
+            const eva15ResidualValue = spec === SPECS.eva15 && spec.zanhoCount
+                ? spec.hesoPayouts.filter(item => item.st).reduce(
+                    (sum, item) => sum + item.prob * qZanho * residualHitBase,
+                    0
+                )
+                : 0;
+
             const challengeAdjustedHesoValue = spec.ltChallengeRate > 0
                 ? spec.hesoPayouts.reduce((sum, item) => {
                     const entryValue = expectedEntryPayout(item, spec);
@@ -2773,11 +2861,99 @@
             const normalCost = normalSpins * (250 / rotation1k);
             const jitanCost = jitanSpinsTotal * (250 / (spec.jitanRotation1k || rotation1k));
             const expectedBalls = normalSpins * (
-                spec.hitProb * challengeAdjustedHesoValue
+                spec.hitProb * (challengeAdjustedHesoValue + eva15ResidualValue)
                 + (spec.chargeProb || 0) * chargeValue
             ) - normalCost - jitanCost;
 
-            return Math.round(expectedBalls * 4);
+            return {
+                G: expectedBalls + normalCost + jitanCost,
+                K: normalCost,
+                Q: jitanCost,
+                Y: totalSpins,
+                expectedPayoutBalls: expectedBalls + normalCost + jitanCost,
+                normalCostBalls: normalCost,
+                jitanCostBalls: jitanCost
+            };
+        }
+
+        function expectedProfitYen(machineKey, rotation1k, totalSpins) {
+            const components = expectedBallComponents(machineKey, rotation1k, totalSpins);
+            return Math.round((components.expectedPayoutBalls - components.normalCostBalls - components.jitanCostBalls) * 4);
+        }
+
+        function normalizeBusinessSettings(settings = {}) {
+            const finite = (value, fallback, min = 0) => {
+                const number = Number(value);
+                return Number.isFinite(number) && number >= min ? number : fallback;
+            };
+            return {
+                capital: Math.floor(finite(settings.capital, 300000)),
+                workers: Math.min(20, Math.floor(finite(settings.workers, 0))),
+                dailyWage: Math.floor(finite(settings.dailyWage, 15000)),
+                exchangeBalls: Math.round(Math.max(25, finite(settings.exchangeBalls, 25, 0.0001)) * 10) / 10,
+                assumedHeldRatio: Math.round(Math.min(1, finite(settings.assumedHeldRatio, 0.5) > 1
+                    ? finite(settings.assumedHeldRatio, 50) / 100
+                    : finite(settings.assumedHeldRatio, 0.5)) * 100) / 100,
+                replayLimit: Math.floor(finite(settings.replayLimit, 0))
+            };
+        }
+
+        function exchangeYenPerBall(settings) {
+            return 100 / normalizeBusinessSettings(settings).exchangeBalls;
+        }
+
+        function isGlobalRankingCompatible(settings, result = null) {
+            const finance = normalizeBusinessSettings(settings);
+            return finance.workers === 0
+                && finance.exchangeBalls === 25
+                && finance.replayLimit === 0
+                && (!result || result.endReason === undefined || result.endReason === '完走');
+        }
+
+        // 非等価の期待コスト C=(1-rho)*4+rho*X と、既存期待値を構成要素として公開する。
+        function expectedProfitComponents(machineKey, rotation1k, totalSpins) {
+            const components = expectedBallComponents(machineKey, rotation1k, totalSpins);
+            return {
+                expectedPayoutBalls: components.expectedPayoutBalls,
+                expectedConsumptionBalls: components.normalCostBalls + components.jitanCostBalls,
+                normalCostBalls: components.normalCostBalls,
+                jitanCostBalls: components.jitanCostBalls
+            };
+        }
+
+        function expectedGameplayProfitYen(machineKey, rotation1k, totalSpins, settings) {
+            const components = expectedProfitComponents(machineKey, rotation1k, totalSpins);
+            const normalized = normalizeBusinessSettings(settings);
+            const x = 100 / normalized.exchangeBalls;
+            const c = (1 - normalized.assumedHeldRatio) * 4 + normalized.assumedHeldRatio * x;
+            return Math.round(components.expectedPayoutBalls * x - components.expectedConsumptionBalls * c);
+        }
+
+        function gameplayBorderRotation(machineKey, totalSpins, settings) {
+            if (expectedGameplayProfitYen(machineKey, 100, totalSpins, settings) < 0) return null;
+            let low = 1;
+            let high = 100;
+            for (let index = 0; index < 32; index++) {
+                const middle = (low + high) / 2;
+                if (expectedGameplayProfitYen(machineKey, middle, totalSpins, settings) >= 0) high = middle;
+                else low = middle;
+            }
+            return Math.round(high * 100) / 100;
+        }
+
+        function expectedOperatingProfitYen(machineKey, rotation1k, totalSpins, settings) {
+            const normalized = normalizeBusinessSettings(settings);
+            return expectedGameplayProfitYen(machineKey, rotation1k, totalSpins, normalized)
+                * (normalized.workers + 1) - normalized.workers * normalized.dailyWage;
+        }
+
+        function aggregateOperatingProfit(results) {
+            return results.reduce((sum, result) => sum + Number(result.operatingProfit || 0), 0);
+        }
+
+        function finalOperatingEffect(result) {
+            const profit = Number(result.operatingProfit ?? result.finalProfit ?? 0);
+            return { type: profit >= 0 ? 'final-plus' : 'final-minus', title: profit >= 0 ? '勝利' : '終了', profit };
         }
 
         let isRunning = false;
@@ -3227,22 +3403,26 @@
                 return null;
             }
             if (!serialized) {
-                dataCache = { version: 3, scopes: {} };
+                dataCache = { version: 4, scopes: {}, profiles: {}, businessState: { capital: 300000, nextDay: 0 } };
                 return dataCache;
             }
 
             try {
                 const parsed = JSON.parse(serialized);
-                if (!parsed || ![2, 3].includes(parsed.version) || typeof parsed.scopes !== 'object' || parsed.scopes === null) {
+                if (!parsed || ![2, 3, 4].includes(parsed.version) || typeof parsed.scopes !== 'object' || parsed.scopes === null) {
                     throw new Error('unsupported data version');
                 }
+                const profiles = normalizeProfiles(parsed.profiles);
                 const scopes = {};
                 Object.keys(parsed.scopes).forEach(scopeKey => {
                     const sourceScope = parsed.scopes[scopeKey];
-                    const expanded = parsed.version === 3 ? expandCompactScope(scopeKey, sourceScope) : sourceScope;
+                    const expanded = parsed.version >= 3 ? expandCompactScope(scopeKey, sourceScope, parsed.version, profiles) : sourceScope;
                     scopes[scopeKey] = normalizeScopeData(scopeKey, expanded).scope;
                 });
-                dataCache = { version: 3, scopes };
+                dataCache = {
+                    version: 4, scopes, profiles,
+                    businessState: normalizeBusinessState(parsed.businessState, scopes)
+                };
                 return dataCache;
             } catch (error) {
                 // Do not replace unreadable bytes with an empty payload on a later save.
@@ -3253,13 +3433,18 @@
 
         function saveAllData(data) {
             if (dataLoadError) throw dataLoadError;
-            const nextCache = { version: 3, scopes: data.scopes };
+            const nextCache = {
+                version: 4, scopes: data.scopes, profiles: normalizeProfiles(data.profiles),
+                businessState: normalizeBusinessState(data.businessState, data.scopes)
+            };
             const persisted = {
-                version: 3,
+                version: 4,
                 scopes: Object.fromEntries(Object.entries(nextCache.scopes).map(([scopeKey, scope]) => [
                     scopeKey,
-                    compactScope(scope)
-                ]))
+                    compactScope(scope, nextCache.profiles)
+                ])),
+                profiles: nextCache.profiles,
+                businessState: nextCache.businessState
             };
             try {
                 localStorage.setItem(DATA_KEY, JSON.stringify(persisted));
@@ -3271,7 +3456,7 @@
 
         function defaultScope() {
             return {
-                stats: { sessions: 0, invest: 0, payout: 0 },
+                stats: { sessions: 0, invest: 0, payout: 0, profit: 0 },
                 history: [],
                 ranking: {
                     bestProfit: null,
@@ -3284,10 +3469,60 @@
             };
         }
 
+        function normalizeProfiles(profiles) {
+            return profiles && typeof profiles === 'object' && !Array.isArray(profiles) ? { ...profiles } : {};
+        }
+
+        function normalizeBusinessState(state, scopes = {}) {
+            const capital = Number(state?.capital);
+            const maxHistoryLength = Math.max(0, ...Object.values(scopes).map(scope => scope.history?.length || 0));
+            const nextDay = Number(state?.nextDay);
+            return {
+                capital: Number.isFinite(capital) && capital >= 0 ? Math.floor(capital) : 300000,
+                nextDay: Number.isFinite(nextDay) && nextDay >= 0 ? Math.floor(nextDay) : maxHistoryLength
+            };
+        }
+
+        function compactProfile(settings) {
+            const value = normalizeBusinessSettings(settings);
+            return [value.workers, value.dailyWage, value.exchangeBalls, value.assumedHeldRatio, value.replayLimit];
+        }
+
+        function expandProfile(value) {
+            if (!Array.isArray(value)) return null;
+            return normalizeBusinessSettings({
+                workers: value[0], dailyWage: value[1], exchangeBalls: value[2],
+                assumedHeldRatio: value[3], replayLimit: value[4]
+            });
+        }
+
+        function profileIdForSettings(profiles, settings) {
+            // 新規v4履歴は可逆なinline key。profile辞書を日ごとに増やさないため、
+            // 100年AUTOの同一設定だけでなく全日固有設定でも容量を一定に保つ。
+            const value = normalizeBusinessSettings(settings);
+            return [
+                value.workers,
+                value.dailyWage,
+                Math.round(value.exchangeBalls * 10),
+                Math.round(value.assumedHeldRatio * 100),
+                value.replayLimit
+            ].map(item => Math.max(0, item).toString(36)).join('.');
+        }
+
+        function expandInlineProfile(key) {
+            if (typeof key !== 'string' || !/^[0-9a-z]+(?:\.[0-9a-z]+){4}$/.test(key)) return null;
+            const [workers, dailyWage, exchangeTenths, rhoPercent, replayLimit] = key.split('.').map(item => parseInt(item, 36));
+            return normalizeBusinessSettings({
+                workers, dailyWage, exchangeBalls: exchangeTenths / 10,
+                assumedHeldRatio: rhoPercent / 100, replayLimit
+            });
+        }
+
         function normalizeScopeData(scopeKey, scope) {
             const normalized = scope && typeof scope === 'object' ? { ...scope } : defaultScope();
             const defaults = defaultScope();
             let migrated = false;
+            const hadProfitStat = Number.isFinite(normalized.stats?.profit);
 
             normalized.stats = { ...defaults.stats, ...(normalized.stats || {}) };
             normalized.ranking = { ...defaults.ranking, ...(normalized.ranking || {}) };
@@ -3315,41 +3550,68 @@
                 }
                 return next;
             });
+            if (!hadProfitStat) {
+                normalized.stats.profit = normalized.history.reduce((sum, session) => sum + Number(session?.profit || 0), 0);
+                migrated = true;
+            }
 
             return { scope: normalized, migrated };
         }
 
-        function expandCompactScope(scopeKey, scope) {
+        function expandCompactScope(scopeKey, scope, version = 3, profiles = {}) {
             const compact = scope && typeof scope === 'object' ? scope : {};
             const history = Array.isArray(compact.h) ? compact.h.map((tuple, index) => {
-                const [invest, payout, profit, spins, expected, analyticalExpected, deviation] = Array.isArray(tuple) ? tuple : [];
+                const values = Array.isArray(tuple) ? tuple : [];
+                const [invest, payout, profit, spins, expected, analyticalExpected, deviation, eighth, ninth, tenth, eleventh, twelfth, thirteenth, fourteenth, fifteenth] = values;
+                const inlineV4 = version >= 4 && typeof values[5] === 'string';
+                const legacyV4 = version >= 4 && values.length >= 15;
+                const profileId = inlineV4 ? values[5] : eighth;
+                const profile = inlineV4 ? expandInlineProfile(profileId) : expandProfile(profiles[profileId]);
+                const storedDayOffset = inlineV4 ? values[8] : (legacyV4 ? fifteenth : values[10]);
+                const dayOffset = version >= 4 && Number.isFinite(storedDayOffset) ? storedDayOffset : index;
+                const reasonCode = inlineV4 ? values[7] : (legacyV4 ? fourteenth : values[9]);
+                const endReason = legacyV4
+                    ? reasonCode
+                    : ({ b: '資金不足', m: '手動停止' }[reasonCode] || '完走');
                 return {
-                    date: getVirtualDateString(index),
-                    day: index + 1,
+                    date: getVirtualDateString(dayOffset),
+                    day: dayOffset + 1,
                     invest,
                     payout,
                     profit,
                     spins,
                     expected,
-                    analyticalExpected,
-                    deviation
+                    analyticalExpected: inlineV4 ? expected : analyticalExpected,
+                    deviation: inlineV4 ? Math.round((profit || 0) - (expected || 0)) : deviation,
+                    ...(version >= 4 && profileId !== undefined ? {
+                        profileId,
+                        gameplayProfit: legacyV4 ? ninth : profit + (profile?.workers || 0) * (profile?.dailyWage || 0),
+                        wage: legacyV4 ? tenth : (profile?.workers || 0) * (profile?.dailyWage || 0),
+                        operatingProfit: legacyV4 ? eleventh : profit,
+                        capital: inlineV4 && values.length >= 10 ? values[9] : (legacyV4 ? twelfth : undefined),
+                        actualHeldRatio: inlineV4 ? Number(values[6] || 0) / 1000 : (legacyV4 ? thirteenth : Number(ninth || 0) / 1000),
+                        endReason,
+                        dayOffset
+                    } : {})
                 };
             }) : [];
             return { stats: compact.s, history, ranking: compact.r };
         }
 
-        function compactScope(scope) {
+        function compactScope(scope, profiles = {}) {
             return {
                 s: scope.stats,
-                h: scope.history.map(session => [
-                    session.invest,
-                    session.payout,
-                    session.profit,
-                    session.spins,
-                    session.expected,
-                    session.analyticalExpected,
-                    session.deviation
-                ]),
+                h: scope.history.map(session => {
+                    if (session.profileId !== undefined) {
+                        const reasonCode = session.endReason === '資金不足' ? 'b' : session.endReason === '手動停止' ? 'm' : '';
+                        const profile = expandInlineProfile(session.profileId) || expandProfile(profiles[session.profileId]);
+                        const inlineProfileId = profile ? profileIdForSettings({}, profile) : session.profileId;
+                        return [session.invest, session.payout, session.profit, session.spins, session.expected,
+                            inlineProfileId, Math.round(Number(session.actualHeldRatio || 0) * 1000), reasonCode, session.dayOffset, session.capital];
+                    }
+                    const compact = [session.invest, session.payout, session.profit, session.spins, session.expected, session.analyticalExpected, session.deviation];
+                    return compact;
+                }),
                 r: scope.ranking
             };
         }
@@ -3371,8 +3633,8 @@
             const data = loadAllData();
             if (!data) throw dataLoadError || new StoragePersistenceError('保存領域を読み込めません。');
             saveAllData({
-                version: 3,
-                scopes: { ...data.scopes, [scopeKey]: cloneScope(scope) }
+                version: 4,
+                scopes: { ...data.scopes, [scopeKey]: cloneScope(scope) }, profiles: data.profiles, businessState: data.businessState
             });
         }
 
@@ -3430,7 +3692,7 @@
 
         function updateCumulativeDisplay() {
             const stats = loadCumulativeStats();
-            const profit = Math.floor(stats.payout * 4) - stats.invest;  // 等価換算
+            const profit = Number(stats.profit || 0);
             const days = getUniqueDaysCount();
             const dailyAvg = days > 0 ? Math.round(profit / days) : 0;
 
@@ -3486,11 +3748,15 @@
 
         function createSessionHistoryEntry(invest, payout, scopeKey, result, dayNumber) {
             const dateStr = getVirtualDateString(dayNumber);
-            const profit = Math.round((payout * 4) - invest);
+            const profit = Math.round(result?.operatingProfit ?? ((payout * 4) - invest));
             const [machineKey, rotationText] = scopeKey.split(':');
             const rotation1k = Number(rotationText) || Number(document.getElementById('rotation1k').value);
-            const spins = Number(result?.plannedSpins) || Number(document.getElementById('totalSpins').value);
-            const expected = expectedProfitYen(machineKey, rotation1k, spins);
+            const spins = result?.settings
+                ? Number(result.rotations)
+                : (Number(result?.plannedSpins) || Number(document.getElementById('totalSpins').value));
+            const expected = result?.settings
+                ? Math.round(result.expectedOperating ?? expectedOperatingProfitYen(machineKey, rotation1k, Number(result.seatPlannedSpins) || spins, result.settings))
+                : expectedProfitYen(machineKey, rotation1k, spins);
             const deviation = Math.round(profit - expected);
             return {
                 date: dateStr,
@@ -3501,7 +3767,17 @@
                 spins: spins,
                 expected: expected,
                 analyticalExpected: expected,
-                deviation: deviation
+                deviation: deviation,
+                ...(result?.profileId ? {
+                    profileId: result.profileId,
+                    gameplayProfit: result.gameplayProfit,
+                    wage: result.wage,
+                    operatingProfit: profit,
+                    capital: result.capital,
+                    actualHeldRatio: result.actualHeldRatio,
+                    endReason: result.endReason,
+                    dayOffset: dayNumber
+                } : {})
             };
         }
 
@@ -3519,7 +3795,7 @@
             if (confirm(`${getScopeLabel(scopeKey)} の全データをリセットしますか？`)) {
                 const data = loadAllData();
                 if (!data) throw dataLoadError || new StoragePersistenceError('保存領域を読み込めません。');
-                saveAllData({ version: 3, scopes: { ...data.scopes, [scopeKey]: defaultScope() } });
+                saveAllData({ version: 4, scopes: { ...data.scopes, [scopeKey]: defaultScope() }, profiles: data.profiles, businessState: data.businessState });
                 refreshScopeDisplays();
             }
         }
@@ -3690,10 +3966,13 @@
             const machineKey = document.getElementById('machine').value;
             const rotation1k = Number(document.getElementById('rotation1k').value);
             const totalSpins = Number(document.getElementById('totalSpins').value);
-            const expected = expectedProfitYen(machineKey, rotation1k, totalSpins);
-            expectedEl.textContent = `期待値/日: ${formatSignedYen(expected)}`;
-
+            const settings = getBusinessSettingsFromDom();
+            const border = gameplayBorderRotation(machineKey, totalSpins, settings);
+            const expected = expectedOperatingProfitYen(machineKey, rotation1k, totalSpins, settings);
             const history = loadSessionHistory().filter(session => Number.isFinite(session.deviation));
+            const latest = history[history.length - 1];
+            expectedEl.textContent = `遊技border: ${border === null ? '算出不可' : `${border}回/千円`} / 営業期待: ${formatSignedYen(expected)} / 最新乖離: ${latest ? formatSignedYen(latest.deviation) : '---'}`;
+
             const upswing = history
                 .filter(session => session.deviation > 0)
                 .sort((a, b) => b.deviation - a.deviation)
@@ -3980,7 +4259,7 @@
 
         function applyRenzokuFast(session, spec, item, chain) {
             const bonus = drawRenzokuBonus(spec, item);
-            session.myBalls += bonus.payout;
+            addPayout(session, bonus.payout);
             chain.count += bonus.count;
             chain.payout += bonus.payout;
         }
@@ -4010,6 +4289,7 @@
             const autoDays = document.getElementById('autoDays');
             const machineSelect = document.getElementById('machine');
             const rotationSelect = document.getElementById('rotation1k');
+            const managementInputs = document.querySelectorAll('.management-settings input');
             runMode = mode;
 
             startBtn.classList.toggle('is-stop', mode === 'single');
@@ -4019,6 +4299,7 @@
             autoDays.disabled = mode !== 'idle';
             machineSelect.disabled = mode !== 'idle';
             rotationSelect.disabled = mode !== 'idle';
+            managementInputs.forEach(input => { input.disabled = mode !== 'idle'; });
             startBtn.textContent = mode === 'single' ? '停止' : '1日実行';
             autoBtn.textContent = mode === 'auto' ? '停止' : '自動実行';
         }
@@ -4029,12 +4310,14 @@
             const autoDays = document.getElementById('autoDays');
             const machineSelect = document.getElementById('machine');
             const rotationSelect = document.getElementById('rotation1k');
+            const managementInputs = document.querySelectorAll('.management-settings input');
             runMode = 'idle';
             startBtn.disabled = false;
             autoBtn.disabled = false;
             autoDays.disabled = false;
             machineSelect.disabled = false;
             rotationSelect.disabled = false;
+            managementInputs.forEach(input => { input.disabled = false; });
             startBtn.classList.remove('is-stop');
             autoBtn.classList.remove('is-stop');
             startBtn.textContent = startLabel;
@@ -4075,15 +4358,22 @@
         }
 
         function showFinalResult(result) {
-            updateDisplay(result.rotations, result.finalBalls, result.totalInvestment);
+            updateDisplay(result.rotations, result.finalBalls, result.totalInvestment, result.gameplayProfit);
             document.getElementById('finalSpins').textContent = result.rotations.toLocaleString();
             document.getElementById('finalHits').textContent = result.hitCount;
             document.getElementById('finalBalls').textContent = result.finalBalls.toLocaleString();
             const finalProfitEl = document.getElementById('finalProfit');
             finalProfitEl.textContent = (result.finalProfit >= 0 ? '+' : '') + result.finalProfit.toLocaleString() + '円';
             finalProfitEl.className = 'final-stat-value ' + (result.finalProfit >= 0 ? 'profit-plus' : 'profit-minus');
+            const wage = Number(result.wage || 0);
+            const operatingProfit = Number(result.operatingProfit ?? result.finalProfit);
+            document.getElementById('finalWage').textContent = `-${wage.toLocaleString()}円`;
+            document.getElementById('finalOperatingProfit').textContent = formatSignedYen(operatingProfit);
+            document.getElementById('finalActualHeldRatio').textContent = `${Math.round(Number(result.actualHeldRatio || 0) * 100)}%`;
+            document.getElementById('finalCapital').textContent = Number(result.capital ?? 0).toLocaleString() + '円';
+            document.getElementById('finalEndReason').textContent = result.endReason || '完走';
             const finalResultPanel = document.getElementById('finalResult');
-            finalResultPanel.className = `final-result ${result.finalProfit >= 0 ? 'result-win' : 'result-loss'}`;
+            finalResultPanel.className = `final-result ${operatingProfit >= 0 ? 'result-win' : 'result-loss'}`;
             finalResultPanel.style.display = 'block';
         }
 
@@ -4093,25 +4383,43 @@
 
             // Mutate only a detached scope. A quota failure must leave the cache and bytes identical.
             const scope = cloneScope(data.scopes[scopeKey] || defaultScope());
+            const profiles = { ...normalizeProfiles(data.profiles) };
+            if (result.settings) result.profileId = profileIdForSettings(profiles, result.settings);
+            const businessState = normalizeBusinessState(data.businessState, data.scopes);
             const entry = createSessionHistoryEntry(
                 result.totalInvestment,
                 result.finalBalls,
                 scopeKey,
                 result,
-                scope.history.length
+                result.settings ? businessState.nextDay : scope.history.length
             );
             scope.stats.sessions += 1;
             scope.stats.invest += result.totalInvestment;
             scope.stats.payout += result.finalBalls;
+            scope.stats.profit += entry.profit;
             scope.history.push(entry);
-            applyRankingResult(
-                scope.ranking,
-                result.finalProfit,
-                result.maxChain,
-                result.maxPayout,
-                entry.deviation
-            );
-            saveAllData({ version: 3, scopes: { ...data.scopes, [scopeKey]: scope } });
+            if (result.settings && Array.isArray(result.seats)) {
+                const x = exchangeYenPerBall(result.settings);
+                result.seats.forEach(seat => {
+                    const gameplayProfit = Math.round(seat.finalBalls * x - seat.cashInvestment - seat.replayUsed * x);
+                    const expected = expectedGameplayProfitYen(
+                        result.machineKey, Number(document.getElementById('rotation1k').value), seat.rotations, result.settings
+                    );
+                    applyRankingResult(scope.ranking, gameplayProfit, seat.maxChain, seat.maxPayout, gameplayProfit - expected);
+                });
+            } else {
+                applyRankingResult(
+                    scope.ranking,
+                    result.finalProfit,
+                    result.maxChain,
+                    result.maxPayout,
+                    entry.deviation
+                );
+            }
+            const nextBusinessState = result.settings
+                ? { capital: result.capital, nextDay: businessState.nextDay + 1 }
+                : businessState;
+            saveAllData({ version: 4, scopes: { ...data.scopes, [scopeKey]: scope }, profiles, businessState: nextBusinessState });
             if (refresh) refreshScopeDisplays();
         }
 
@@ -4125,16 +4433,50 @@
             addLog(`収支: ${(result.finalProfit >= 0 ? '+' : '')}${result.finalProfit.toLocaleString()}円`);
         }
 
+        function addPayout(session, amount) {
+            session.myBalls += amount;
+            session.earnedBalls = (session.earnedBalls || 0) + amount;
+        }
+
+        function consumeHeldBalls(session, amount) {
+            const earned = Math.min(session.earnedBalls || 0, amount);
+            const cash = amount - earned;
+            session.earnedBalls = Math.max(0, (session.earnedBalls || 0) - earned);
+            session.cashBalls = Math.max(0, (session.cashBalls || 0) - cash);
+            session.earnedConsumed = (session.earnedConsumed || 0) + earned;
+            session.cashConsumed = (session.cashConsumed || 0) + cash;
+            session.myBalls -= amount;
+        }
+
+        // 不足時は、当日獲得玉・購入残玉を先に消費し、次に貯玉枠、最後に千円単位で現金購入する。
         function buyBalls(session, amount, ballsPer1k) {
             if (session.myBalls >= amount) {
-                session.myBalls -= amount;
-                return;
+                consumeHeldBalls(session, amount);
+                return true;
             }
-            const shortage = amount - session.myBalls;
-            session.myBalls = 0;
-            const investUnits = Math.ceil(shortage / ballsPer1k);
-            session.totalInvestment += investUnits * 1000;
-            session.myBalls += investUnits * ballsPer1k - shortage;
+            const held = session.myBalls;
+            const shortage = amount - held;
+            const funds = session.funds;
+            const replayUsed = funds ? Math.min(funds.replayRemaining, shortage) : 0;
+            const cashShortage = shortage - replayUsed;
+            const investUnits = cashShortage > 0 ? Math.ceil(cashShortage / ballsPer1k) : 0;
+            const cashCost = investUnits * 1000;
+            const availableCash = funds ? funds.cashRemaining : (session.investmentLimit - session.totalInvestment);
+            if (cashCost > availableCash) {
+                session.bankrupt = true;
+                return false;
+            }
+            if (held > 0) consumeHeldBalls(session, held);
+            if (funds) funds.replayRemaining -= replayUsed;
+            session.replayUsed = (session.replayUsed || 0) + replayUsed;
+            session.totalInvestment += cashCost;
+            session.cashInvestment = (session.cashInvestment || 0) + cashCost;
+            if (funds) funds.cashRemaining -= cashCost;
+            const cashRemainder = investUnits * ballsPer1k - cashShortage;
+            session.cashBalls = (session.cashBalls || 0) + cashRemainder;
+            session.cashConsumed = (session.cashConsumed || 0) + cashShortage;
+            session.myBalls += cashRemainder;
+            return true;
         }
 
         function updateFastRecords(session, chainCount, chainPayout) {
@@ -4179,7 +4521,7 @@
                     firstBaseHit = false;
                     state = Math.random() < upgradeRate ? 'upper' : 'base';
                 }
-                session.myBalls += item.payout;
+                addPayout(session, item.payout);
                 chain.payout += item.payout;
             }
 
@@ -4207,13 +4549,13 @@
 
                 chain.count++;
                 const item = getDenchuResult(spec);
-                session.myBalls += item.payout;
+                addPayout(session, item.payout);
                 chain.payout += item.payout;
                 applyRenzokuFast(session, spec, item, chain);
             }
 
             if (spec.ltEndPayout > 0) {
-                session.myBalls += spec.ltEndPayout;
+                addPayout(session, spec.ltEndPayout);
                 chain.payout += spec.ltEndPayout;
             }
 
@@ -4228,7 +4570,7 @@
                 if (Math.random() < spec.hitProb) {
                     session.hitCount++;
                     const item = getDenchuResult(spec);
-                    session.myBalls += item.payout;
+                    addPayout(session, item.payout);
                     updateFastRecords(session, 1, item.payout);
                     const needsJitan = processStandardRushFast(session, spec, item);
                     if (needsJitan) {
@@ -4249,19 +4591,21 @@
             let jitanSpinCount = 0;
             let hitInJitan = false;
             while (jitanSpinCount < spec.jitanSpins && session.rotations < totalSpins) {
+                if (!buyBalls(session, ballsPerSpinJitan, ballsPer1k)) break;
                 session.rotations++;
                 jitanSpinCount++;
-                buyBalls(session, ballsPerSpinJitan, ballsPer1k);
                 if (Math.random() < jitanHitProb) {
                     hitInJitan = true;
                     break;
                 }
             }
 
+            if (session.bankrupt) return false;
+
             if (hitInJitan) {
                 session.hitCount++;
                 const item = getJitanHitResult(spec);
-                session.myBalls += item.payout;
+                addPayout(session, item.payout);
                 updateFastRecords(session, 1, item.payout);
                 if (spec.upperRushPayouts) {
                     processLayeredRushFast(session, spec, item.payout, 'jitan');
@@ -4282,29 +4626,29 @@
             let chainPayout = firstPayout;
 
             if (Math.random() >= spec.ltChallengeRate) {
-                session.myBalls += spec.ltEndPayout;
+                addPayout(session, spec.ltEndPayout);
                 chainPayout += spec.ltEndPayout;
                 updateFastRecords(session, chainCount, chainPayout);
                 return;
             }
 
-            session.myBalls += spec.ltFirstPayout;
+            addPayout(session, spec.ltFirstPayout);
             chainPayout += spec.ltFirstPayout;
             chainCount++;
 
             while (Math.random() < spec.stContinueRate) {
                 chainCount++;
                 const payout = getDenchuPayout(spec);
-                session.myBalls += payout;
+                addPayout(session, payout);
                 chainPayout += payout;
             }
 
-            session.myBalls += spec.ltEndPayout;
+            addPayout(session, spec.ltEndPayout);
             chainPayout += spec.ltEndPayout;
             updateFastRecords(session, chainCount, chainPayout);
         }
 
-        function simulateFastSession(machineKey, totalSpins, rotation1k) {
+        function simulateFastSession(machineKey, totalSpins, rotation1k, funding = Infinity) {
             const spec = SPECS[machineKey];
             const ballsPer1k = 250;
             const ballsPerSpin = ballsPer1k / rotation1k;
@@ -4316,7 +4660,15 @@
                 hitCount: 0,
                 maxSessionChain: 0,
                 maxSessionPayout: 0,
-                maxDrought: 0
+                maxDrought: 0,
+                investmentLimit: typeof funding === 'number' ? funding : Infinity,
+                funds: funding && typeof funding === 'object' ? funding : null,
+                replayUsed: 0,
+                earnedConsumed: 0,
+                cashConsumed: 0,
+                earnedBalls: 0,
+                cashBalls: 0,
+                bankrupt: false
             };
 
             while (session.rotations < totalSpins) {
@@ -4325,13 +4677,13 @@
                 let normalDrought = 0;
 
                 while (session.rotations < totalSpins) {
+                    if (!buyBalls(session, ballsPerSpin, ballsPer1k)) break;
                     session.rotations++;
                     normalDrought++;
-                    buyBalls(session, ballsPerSpin, ballsPer1k);
                     const normalOutcome = drawNormalOutcome(spec);
 
                     if (normalOutcome === 'charge') {
-                        session.myBalls += spec.chargePayout;
+                        addPayout(session, spec.chargePayout);
                         if (Math.random() < spec.chargeStRate) {
                             chargeBousou = true;
                             break;
@@ -4345,7 +4697,7 @@
                 }
 
                 session.maxDrought = Math.max(session.maxDrought, normalDrought);
-                if (!chargeBousou && !figureHit) break;
+                if (session.bankrupt || (!chargeBousou && !figureHit)) break;
 
                 session.hitCount++;
                 let firstResult;
@@ -4360,7 +4712,7 @@
                     firstResult = hesoResult;
                     firstPayout = firstResult.payout;
                     stEntered = hesoResult.st;
-                    session.myBalls += firstPayout;
+                    addPayout(session, firstPayout);
                 }
 
                 updateFastRecords(session, 1, firstPayout);
@@ -4385,7 +4737,7 @@
                 processJitanFast(session, spec, totalSpins, ballsPerSpinJitan, ballsPer1k);
             }
 
-            return buildSessionResult(
+            const result = buildSessionResult(
                 machineKey,
                 session.rotations,
                 session.myBalls,
@@ -4396,17 +4748,100 @@
                 totalSpins,
                 session.maxDrought
             );
+            result.endReason = session.bankrupt ? '資金不足' : '完走';
+            result.replayUsed = session.replayUsed;
+            result.earnedConsumed = session.earnedConsumed;
+            result.cashInvestment = session.cashInvestment || 0;
+            result.cashConsumed = session.cashConsumed;
+            return result;
+        }
+
+        function getBusinessSettingsFromDom() {
+            return normalizeBusinessSettings({
+                capital: document.getElementById('operatingCapital').value,
+                workers: document.getElementById('workers').value,
+                dailyWage: document.getElementById('dailyWage').value,
+                exchangeBalls: document.getElementById('exchangeBalls').value,
+                assumedHeldRatio: Number(document.getElementById('assumedHeldRatio').value) / 100,
+                replayLimit: document.getElementById('replayLimit').value
+            });
+        }
+
+        function updateManagementSummary() {
+            const settings = getBusinessSettingsFromDom();
+            document.getElementById('managementSummary').textContent =
+                `残現金 ${settings.capital.toLocaleString()}円 / 打ち子 ${settings.workers}人 / ${settings.exchangeBalls}玉 / 貯玉 ${settings.replayLimit.toLocaleString()}発`;
+        }
+
+        // 1営業日を原子的に組み立てる。打ち子は本人を含まず、日当は日初に全額控除する。
+        function simulateBusinessDay(machineKey, totalSpins, rotation1k, settings) {
+            const finance = normalizeBusinessSettings(settings);
+            const participantCount = finance.workers + 1;
+            const wage = finance.workers * finance.dailyWage;
+            if (finance.capital < wage) {
+                return {
+                    machineKey, seats: [], rotations: 0, plannedSpins: totalSpins * participantCount,
+                    finalBalls: 0, totalInvestment: 0, hitCount: 0, maxChain: 0, maxPayout: 0, maxDrought: 0,
+                    gameplayProfit: 0, wage, finalProfit: 0, operatingProfit: 0, capital: finance.capital,
+                    actualHeldRatio: 0, replayUsed: 0, endReason: '日当不足', completed: false
+                };
+            }
+
+            const funds = { cashRemaining: finance.capital - wage, replayRemaining: finance.replayLimit };
+            const seats = [];
+            let endReason = '完走';
+            for (let seat = 0; seat < participantCount; seat++) {
+                const result = simulateFastSession(machineKey, totalSpins, rotation1k, funds);
+                seats.push(result);
+                if (result.endReason !== '完走') {
+                    endReason = '資金不足';
+                    break;
+                }
+            }
+
+            return finalizeBusinessDay(machineKey, totalSpins, rotation1k, finance, funds, seats, endReason);
+        }
+
+        function finalizeBusinessDay(machineKey, totalSpins, rotation1k, finance, funds, seats, endReason) {
+            const wage = finance.workers * finance.dailyWage;
+            const participantCount = finance.workers + 1;
+            const x = exchangeYenPerBall(finance);
+            const finalBalls = seats.reduce((sum, seat) => sum + seat.finalBalls, 0);
+            const totalInvestment = seats.reduce((sum, seat) => sum + seat.totalInvestment, 0);
+            const replayUsed = seats.reduce((sum, seat) => sum + seat.replayUsed, 0);
+            const cashInvestment = seats.reduce((sum, seat) => sum + seat.cashInvestment, 0);
+            const gameplayProfit = Math.round(finalBalls * x - cashInvestment - replayUsed * x);
+            const operatingProfit = gameplayProfit - wage;
+            const rotations = seats.reduce((sum, seat) => sum + seat.rotations, 0);
+            const earnedConsumed = seats.reduce((sum, seat) => sum + seat.earnedConsumed, 0);
+            const consumptionBalls = seats.reduce((sum, seat) => sum + seat.earnedConsumed + seat.replayUsed + seat.cashConsumed, 0);
+            const actualHeldRatio = consumptionBalls > 0 ? (earnedConsumed + replayUsed) / consumptionBalls : 0;
+            const expectedOperating = seats.reduce(
+                (sum, seat) => sum + expectedGameplayProfitYen(machineKey, rotation1k, seat.rotations, finance),
+                0
+            ) - wage;
+            return {
+                machineKey, seats, rotations, plannedSpins: totalSpins * participantCount, finalBalls, totalInvestment,
+                hitCount: seats.reduce((sum, seat) => sum + seat.hitCount, 0),
+                maxChain: Math.max(0, ...seats.map(seat => seat.maxChain)),
+                maxPayout: Math.max(0, ...seats.map(seat => seat.maxPayout)),
+                maxDrought: Math.max(0, ...seats.map(seat => seat.maxDrought)),
+                gameplayProfit, wage, finalProfit: gameplayProfit, operatingProfit,
+                capital: Math.round(funds.cashRemaining + finalBalls * x), actualHeldRatio, replayUsed,
+                settings: finance, seatPlannedSpins: totalSpins, expectedOperating,
+                endReason, completed: endReason === '完走'
+            };
         }
 
         // UI更新
-        function updateDisplay(rotations, balls, investment) {
+        function updateDisplay(rotations, balls, investment, gameplayProfit = null) {
             lastRotations = rotations;
             const wholeBalls = Math.floor(balls);
             document.getElementById('rotationDisplay').textContent = rotations.toLocaleString();
             document.getElementById('ballsDisplay').textContent = wholeBalls.toLocaleString();
             document.getElementById('investDisplay').textContent = investment.toLocaleString();
 
-            const profit = wholeBalls * 4 - investment;
+            const profit = gameplayProfit === null ? wholeBalls * 4 - investment : gameplayProfit;
             const profitEl = document.getElementById('profitDisplay');
             profitEl.textContent = (profit >= 0 ? '+' : '') + profit.toLocaleString();
             profitEl.className = 'stat-value ' + (profit >= 0 ? 'profit-plus' : 'profit-minus');
@@ -4503,8 +4938,17 @@
 
             try {
             const { machineKey, spec, totalSpins, rotation1k, speedValue } = getRunConfig();
+            const businessSettings = getBusinessSettingsFromDom();
+            if (businessSettings.capital < businessSettings.workers * businessSettings.dailyWage) {
+                addLog('日当を全額支払えないため、この営業日は開始しません。', 'log-st');
+                setState('日当不足');
+                return;
+            }
             clearGlobalRankingCandidate();
-            const leaderboardRunPromise = requestLeaderboardRun(machineKey, totalSpins, rotation1k);
+            const rankingSettings = businessSettings;
+            const leaderboardRunPromise = isGlobalRankingCompatible(rankingSettings)
+                ? requestLeaderboardRun(machineKey, totalSpins, rotation1k)
+                : Promise.resolve(null);
             currentTotalSpins = totalSpins;
             lastRotations = 0;
             setMachineTheme(machineKey);
@@ -4530,17 +4974,28 @@
             let maxSessionChain = 0;  // セッション中の最大連チャン
             let maxSessionPayout = 0; // セッション中の一撃最高出玉
             let maxDrought = 0;       // 通常時の最大連続回転数
+            const wage = businessSettings.workers * businessSettings.dailyWage;
+            const sharedFunds = { cashRemaining: businessSettings.capital - wage, replayRemaining: businessSettings.replayLimit };
+            const ownerSession = {
+                myBalls, totalInvestment, hitCount, maxSessionChain, maxSessionPayout, maxDrought,
+                funds: sharedFunds, replayUsed: 0, earnedConsumed: 0, cashConsumed: 0,
+                earnedBalls: 0, cashBalls: 0, bankrupt: false
+            };
+
+            function syncOwnerSession() {
+                myBalls = ownerSession.myBalls;
+                totalInvestment = ownerSession.totalInvestment;
+            }
+
+            function addOwnerPayout(amount) {
+                addPayout(ownerSession, amount);
+                syncOwnerSession();
+            }
 
             function consumeBalls(amount) {
-                if (myBalls >= amount) {
-                    myBalls -= amount;
-                } else {
-                    const shortage = amount - myBalls;
-                    myBalls = 0;
-                    const investUnits = Math.ceil(shortage / ballsPer1k);
-                    totalInvestment += investUnits * 1000;
-                    myBalls += investUnits * ballsPer1k - shortage;
-                }
+                const consumed = buyBalls(ownerSession, amount, ballsPer1k);
+                syncOwnerSession();
+                return consumed;
             }
 
             async function runLayeredRush(firstPayout, entryMode = 'direct') {
@@ -4601,7 +5056,7 @@
                         }
                     }
 
-                    myBalls += item.payout;
+                    addOwnerPayout(item.payout);
                     chainPayout += item.payout;
                     updateDisplay(rotations, myBalls, totalInvestment);
                     const activeRushName = state === 'upper' ? upperRushName : rushName;
@@ -4630,20 +5085,21 @@
                 // 通常状態
                 setState('通常');
                 while (rotations < totalSpins && !shouldStop) {
+                    if (!consumeBalls(ballsPerSpin)) break;
                     rotations++;
                     spinsToHit++;
-                    consumeBalls(ballsPerSpin);
 
                     if (rotations % 10 === 0) {
                         updateDisplay(rotations, myBalls, totalInvestment);
                         await sleep(baseDelay / 5);
+                        if (shouldStop) break;
                     }
 
                     const normalOutcome = drawNormalOutcome(spec);
 
                     // チャージ
                     if (normalOutcome === 'charge') {
-                        myBalls += spec.chargePayout;
+                        addOwnerPayout(spec.chargePayout);
                         addLog(`⚡ チャージ！ +${spec.chargePayout}発`, 'log-charge');
                         playEffect('charge', 'CHARGE', `+${spec.chargePayout.toLocaleString()}発`, 900);
                         flashStat('ballsDisplay');
@@ -4683,7 +5139,7 @@
                     firstResult = result;
                     firstPayout = firstResult.payout;
                     stEntered = result.st;
-                    myBalls += firstPayout;
+                    addOwnerPayout(firstPayout);
                     const hitLabel = result.label || '';
                     addLog(`🎰【当たり${hitCount}】${hitLabel ? `${hitLabel} ` : ''}${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 'log-hit');
                     playEffect('hit', hitLabel || '大当り', `${spinsToHit}回転目 +${firstPayout.toLocaleString()}発`, 1300);
@@ -4694,6 +5150,7 @@
                 maxSessionPayout = Math.max(maxSessionPayout, firstPayout);
 
                 await sleep(baseDelay * 3);
+                if (shouldStop) break;
 
                 if (stEntered) {
                     // ST/LT処理
@@ -4703,7 +5160,7 @@
                     let chainPayout = firstPayout;
                     const firstBonus = drawRenzokuBonus(spec, firstResult);
                     if (firstBonus.payout > 0) {
-                        myBalls += firstBonus.payout;
+                        addOwnerPayout(firstBonus.payout);
                         chainCount += firstBonus.count;
                         chainPayout += firstBonus.payout;
                         addLog(`  無双連撃 +${firstBonus.payout.toLocaleString()}発`, 'log-chain');
@@ -4719,11 +5176,12 @@
                         setState(challengeName);
                         playEffect('chance', challengeName, '突入判定', 1200);
                         await sleep(baseDelay * 5);
+                        if (shouldStop) break;
 
                         // チャレンジ判定
                         if (Math.random() >= spec.ltChallengeRate) {
                             // チャレンジ敗北
-                            myBalls += spec.ltEndPayout;
+                            addOwnerPayout(spec.ltEndPayout);
                             chainPayout += spec.ltEndPayout;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  ${challengeName}敗北... +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
@@ -4736,20 +5194,21 @@
                             // チャレンジ成功 → RUSH突入
                             addLog(`🔥 ${challengeName}勝利！ ${rushName}突入！`, 'log-st');
                             playEffect('rush', rushName, '突入', 1300);
-                            myBalls += spec.ltFirstPayout;
+                            addOwnerPayout(spec.ltFirstPayout);
                             chainPayout += spec.ltFirstPayout;
                             chainCount++;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  ${rushName}突入: +${spec.ltFirstPayout.toLocaleString()}発`, 'log-chain');
                             flashStat('ballsDisplay');
                             await sleep(baseDelay * 4);
+                            if (shouldStop) break;
                             setState(rushName);
 
                             // RUSH継続ループ
                             while (!shouldStop && Math.random() < spec.stContinueRate) {
                                 chainCount++;
                                 const payout = getDenchuPayout(spec);
-                                myBalls += payout;
+                                addOwnerPayout(payout);
                                 chainPayout += payout;
                                 updateDisplay(rotations, myBalls, totalInvestment);
                                 addLog(`  ${chainCount}連目: ${rushName}継続 +${payout.toLocaleString()}発`, 'log-chain');
@@ -4759,7 +5218,8 @@
                             }
 
                             // RUSH転落
-                            myBalls += spec.ltEndPayout;
+                            if (shouldStop) break;
+                            addOwnerPayout(spec.ltEndPayout);
                             chainPayout += spec.ltEndPayout;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  ${rushName}転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
@@ -4776,6 +5236,7 @@
                         setState(rushName, `${spec.stSpins}回転`);
                         playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
                         await sleep(baseDelay * 5);
+                        if (shouldStop) break;
 
                         let stSpin = 1;
                         while (!shouldStop) {
@@ -4796,11 +5257,11 @@
                             chainCount++;
                             const item = getDenchuResult(spec);
                             const payout = item.payout;
-                            myBalls += payout;
+                            addOwnerPayout(payout);
                             chainPayout += payout;
                             const bonus = drawRenzokuBonus(spec, item);
                             if (bonus.payout > 0) {
-                                myBalls += bonus.payout;
+                                addOwnerPayout(bonus.payout);
                                 chainCount += bonus.count;
                                 chainPayout += bonus.payout;
                             }
@@ -4814,8 +5275,8 @@
                         }
 
                         // LT転落時出玉
-                        if (spec.ltEndPayout > 0) {
-                            myBalls += spec.ltEndPayout;
+                        if (!shouldStop && spec.ltEndPayout > 0) {
+                            addOwnerPayout(spec.ltEndPayout);
                             chainPayout += spec.ltEndPayout;
                             updateDisplay(rotations, myBalls, totalInvestment);
                             addLog(`  LT転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
@@ -4832,18 +5293,21 @@
                             setState('時短', `0/${spec.jitanSpins}`);
                             playEffect('jitan', '時短', `${spec.jitanSpins}回転`, 900);
                             await sleep(baseDelay * 2);
+                            if (shouldStop) break;
 
                             let jitanSpinCount = 0;
                             let hitInJitan = false;
                             while (jitanSpinCount < spec.jitanSpins && rotations < totalSpins && !shouldStop) {
+                                if (!consumeBalls(ballsPerSpinJitan)) break;
                                 rotations++;
                                 jitanSpinCount++;
-                                consumeBalls(ballsPerSpinJitan);
                                 if (jitanSpinCount % 20 === 0) {
                                     updateDisplay(rotations, myBalls, totalInvestment);
                                     setState('時短', `${jitanSpinCount}/${spec.jitanSpins}`);
                                     await sleep(baseDelay / 3);
+                                    if (shouldStop) break;
                                 }
+                                if (shouldStop) break;
                                 if (Math.random() < (spec.jitanHitProb ?? spec.hitProb)) {
                                     hitInJitan = true;
                                     break;
@@ -4853,7 +5317,7 @@
 
                             hitCount++;
                             const reboundItem = getJitanHitResult(spec);
-                            myBalls += reboundItem.payout;
+                            addOwnerPayout(reboundItem.payout);
                             addLog(`🎰【当たり${hitCount}】時短${jitanSpinCount}回転目で引き戻し！ +${reboundItem.payout.toLocaleString()}発`, 'log-hit');
                             updateDisplay(rotations, myBalls, totalInvestment);
                             flashStat('ballsDisplay');
@@ -4863,7 +5327,7 @@
                             chainPayout = reboundItem.payout;
                             const reboundBonus = drawRenzokuBonus(spec, reboundItem);
                             if (reboundBonus.payout > 0) {
-                                myBalls += reboundBonus.payout;
+                                addOwnerPayout(reboundBonus.payout);
                                 chainCount += reboundBonus.count;
                                 chainPayout += reboundBonus.payout;
                                 addLog(`  無双連撃 +${reboundBonus.payout.toLocaleString()}発`, 'log-chain');
@@ -4876,11 +5340,11 @@
                             while (!shouldStop && Math.random() < spec.stContinueRate) {
                                 chainCount++;
                                 const item = getDenchuResult(spec);
-                                myBalls += item.payout;
+                                addOwnerPayout(item.payout);
                                 chainPayout += item.payout;
                                 const bonus = drawRenzokuBonus(spec, item);
                                 if (bonus.payout > 0) {
-                                    myBalls += bonus.payout;
+                                    addOwnerPayout(bonus.payout);
                                     chainCount += bonus.count;
                                     chainPayout += bonus.payout;
                                 }
@@ -4892,8 +5356,8 @@
                                 await sleep(baseDelay * 4);
                             }
 
-                            if (spec.ltEndPayout > 0) {
-                                myBalls += spec.ltEndPayout;
+                            if (!shouldStop && spec.ltEndPayout > 0) {
+                                addOwnerPayout(spec.ltEndPayout);
                                 chainPayout += spec.ltEndPayout;
                                 updateDisplay(rotations, myBalls, totalInvestment);
                                 addLog(`  LT転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
@@ -4906,10 +5370,11 @@
                         }
 
                         // インパクトモード終了後の残保留チェック（eva15向け）
-                        if (!spec.isLT && spec.zanhoCount > 0) {
+                        if (!shouldStop && !spec.isLT && spec.zanhoCount > 0) {
                             addLog(`残保留チェック（${spec.zanhoCount}個）...`, 'log-jitan');
                             playEffect('chance', '残保留', `${spec.zanhoCount}個チェック`, 900);
                             await sleep(baseDelay * 2);
+                            if (shouldStop) break;
 
                             let zanhoHit = false;
                             for (let i = 0; i < spec.zanhoCount; i++) {
@@ -4917,7 +5382,7 @@
                                     zanhoHit = true;
                                     hitCount++;
                                     const payout = getDenchuPayout(spec);
-                                    myBalls += payout;
+                                    addOwnerPayout(payout);
                                     addLog(`✨ 残保留${i + 1}個目で当たり！ +${payout.toLocaleString()}発`, 'log-hit');
                                     playEffect('hit', '残保留当り', `+${payout.toLocaleString()}発`, 1200);
                                     updateDisplay(rotations, myBalls, totalInvestment);
@@ -4947,7 +5412,7 @@
 
                                         chainCount++;
                                         const p = getDenchuPayout(spec);
-                                        myBalls += p;
+                                        addOwnerPayout(p);
                                         chainPayout += p;
                                         updateDisplay(rotations, myBalls, totalInvestment);
                                         addLog(`  ${chainCount}連目: ST${stSpin2}回転 +${p.toLocaleString()}発`, 'log-chain');
@@ -4974,21 +5439,24 @@
                     setState('時短', `0/${spec.jitanSpins}`);
                     playEffect('jitan', '時短', `${spec.jitanSpins}回転`, 900);
                     await sleep(baseDelay * 2);
+                    if (shouldStop) break;
 
                     let jitanSpinCount = 0;
                     let hitInJitan = false;
 
                     while (jitanSpinCount < spec.jitanSpins && rotations < totalSpins && !shouldStop) {
+                        if (!consumeBalls(ballsPerSpinJitan)) break;
                         rotations++;
                         jitanSpinCount++;
-                        consumeBalls(ballsPerSpinJitan);
 
                         if (jitanSpinCount % 20 === 0) {
                             updateDisplay(rotations, myBalls, totalInvestment);
                             setState('時短', `${jitanSpinCount}/${spec.jitanSpins}`);
                             await sleep(baseDelay / 3);
+                            if (shouldStop) break;
                         }
 
+                        if (shouldStop) break;
                         if (Math.random() < (spec.jitanHitProb ?? spec.hitProb)) {
                             hitInJitan = true;
                             break;
@@ -4996,16 +5464,18 @@
                     }
 
                     if (hitInJitan) {
+                        if (shouldStop) break;
                         // 時短引き戻し
                         hitCount++;
                         const jitanItem = getJitanHitResult(spec);
                         const payout = jitanItem.payout;
-                        myBalls += payout;
+                        addOwnerPayout(payout);
                         addLog(`🎰【当たり${hitCount}】時短${jitanSpinCount}回転目で引き戻し！ +${payout.toLocaleString()}発`, 'log-hit');
                         playEffect('hit', '引き戻し', `時短${jitanSpinCount}回転目`, 1200);
                         updateDisplay(rotations, myBalls, totalInvestment);
                         flashStat('ballsDisplay');
                         await sleep(baseDelay * 3);
+                        if (shouldStop) break;
 
                         if (spec.upperRushPayouts) {
                             await runLayeredRush(payout, 'jitan');
@@ -5016,12 +5486,14 @@
                             setState(rushName, `${spec.stSpins}回転`);
                             playEffect('rush', rushName, `${spec.stSpins}回転`, 1200);
                             await sleep(baseDelay * 5);
+                            if (shouldStop) break;
 
                             let chainCount = 1;
                             let chainPayout = payout;
                             const firstBonus = drawRenzokuBonus(spec, jitanItem);
+                            if (shouldStop) break;
                             if (firstBonus.payout > 0) {
-                                myBalls += firstBonus.payout;
+                                addOwnerPayout(firstBonus.payout);
                                 chainCount += firstBonus.count;
                                 chainPayout += firstBonus.payout;
                                 addLog(`  無双連撃 +${firstBonus.payout.toLocaleString()}発`, 'log-chain');
@@ -5043,16 +5515,17 @@
                                     }
                                 }
 
-                                if (!hitInSt) break;
+                            if (!hitInSt) break;
+                            if (shouldStop) break;
 
                                 chainCount++;
                                 const item = getDenchuResult(spec);
                                 const p = item.payout;
-                                myBalls += p;
+                                addOwnerPayout(p);
                                 chainPayout += p;
                                 const bonus = drawRenzokuBonus(spec, item);
                                 if (bonus.payout > 0) {
-                                    myBalls += bonus.payout;
+                                    addOwnerPayout(bonus.payout);
                                     chainCount += bonus.count;
                                     chainPayout += bonus.payout;
                                 }
@@ -5065,8 +5538,8 @@
                                 await sleep(baseDelay * 4);
                             }
 
-                            if (spec.ltEndPayout > 0) {
-                                myBalls += spec.ltEndPayout;
+                            if (!shouldStop && spec.ltEndPayout > 0) {
+                                addOwnerPayout(spec.ltEndPayout);
                                 chainPayout += spec.ltEndPayout;
                                 updateDisplay(rotations, myBalls, totalInvestment);
                                 addLog(`  LT転落 → +${spec.ltEndPayout.toLocaleString()}発`, 'log-chain');
@@ -5074,24 +5547,27 @@
                                 await sleep(baseDelay * 2);
                             }
 
+                            if (shouldStop) break;
                             addLog(`${rushName}終了 → ${chainCount}連チャン！ 計${chainPayout.toLocaleString()}発`, 'log-st');
                             maxSessionChain = Math.max(maxSessionChain, chainCount);
                             maxSessionPayout = Math.max(maxSessionPayout, chainPayout);
                         }
                     } else {
                         // 残保留チェック
-                        if (spec.zanhoCount > 0) {
+                        if (!shouldStop && spec.zanhoCount > 0) {
                             addLog(`時短終了... 残保留チェック（${spec.zanhoCount}個）`, 'log-jitan');
                             playEffect('chance', '残保留', `${spec.zanhoCount}個チェック`, 900);
                             await sleep(baseDelay * 2);
+                            if (shouldStop) break;
 
                             let zanhoHit = false;
                             for (let i = 0; i < spec.zanhoCount; i++) {
+                                if (shouldStop) break;
                                 if (Math.random() < spec.hitProb) {
                                     zanhoHit = true;
                                     hitCount++;
                                     const payout = getDenchuPayout(spec);
-                                    myBalls += payout;
+                                    addOwnerPayout(payout);
                                     addLog(`✨ 残保留${i + 1}個目で当たり！ +${payout.toLocaleString()}発`, 'log-hit');
                                     playEffect('hit', '残保留当り', `+${payout.toLocaleString()}発`, 1200);
                                     updateDisplay(rotations, myBalls, totalInvestment);
@@ -5122,7 +5598,7 @@
 
                                         chainCount++;
                                         const p = getDenchuPayout(spec);
-                                        myBalls += p;
+                                        addOwnerPayout(p);
                                         chainPayout += p;
                                         updateDisplay(rotations, myBalls, totalInvestment);
                                         addLog(`  ${chainCount}連目: ST${stSpin}回転 +${p.toLocaleString()}発`, 'log-chain');
@@ -5152,7 +5628,7 @@
 
             // 最終結果
             updateDisplay(rotations, myBalls, totalInvestment);
-            const result = buildSessionResult(
+            let result = buildSessionResult(
                 machineKey,
                 rotations,
                 myBalls,
@@ -5163,31 +5639,54 @@
                 totalSpins,
                 maxDrought
             );
+            ownerSession.hitCount = hitCount;
+            ownerSession.maxSessionChain = maxSessionChain;
+            ownerSession.maxSessionPayout = maxSessionPayout;
+            ownerSession.maxDrought = maxDrought;
+            result.replayUsed = ownerSession.replayUsed;
+            result.earnedConsumed = ownerSession.earnedConsumed;
+            result.cashConsumed = ownerSession.cashConsumed;
+            result.cashInvestment = ownerSession.cashInvestment || 0;
+            result.endReason = ownerSession.bankrupt ? '資金不足' : (shouldStop ? '手動停止' : '完走');
+
+            const seats = [result];
+            let endReason = result.endReason;
+            if (endReason === '完走') {
+                for (let worker = 0; worker < businessSettings.workers; worker++) {
+                    const workerResult = simulateFastSession(machineKey, totalSpins, rotation1k, sharedFunds);
+                    seats.push(workerResult);
+                    if (workerResult.endReason !== '完走') {
+                        endReason = '資金不足';
+                        break;
+                    }
+                }
+            }
+            result = finalizeBusinessDay(machineKey, totalSpins, rotation1k, businessSettings, sharedFunds, seats, endReason);
 
             logFinalResult(result);
             showFinalResult(result);
 
+            // 累計収支に追加
+            recordSessionOutcome(result, scopeKey);
+            document.getElementById('operatingCapital').value = String(result.capital);
+            updateManagementSummary();
+
             const leaderboardRun = await leaderboardRunPromise;
-            if (!shouldStop && rotations >= totalSpins && leaderboardRun?.runId) {
-                globalRankingCandidate = {
-                    runId: leaderboardRun.runId,
-                    result,
-                    rotation1k
-                };
+            if (result.completed && leaderboardRun?.runId) {
+                globalRankingCandidate = { runId: leaderboardRun.runId, result, rotation1k };
                 updateGlobalRankingCandidate();
             }
 
-            // 累計収支に追加
-            recordSessionOutcome(result, scopeKey);
-
             setState('終了');
+            const finalEffect = finalOperatingEffect(result);
             playEffect(
-                result.finalProfit >= 0 ? 'final-plus' : 'final-minus',
-                result.finalProfit >= 0 ? '勝利' : '終了',
-                `${result.finalProfit >= 0 ? '+' : ''}${result.finalProfit.toLocaleString()}円`,
+                finalEffect.type,
+                finalEffect.title,
+                `${finalEffect.profit >= 0 ? '+' : ''}${finalEffect.profit.toLocaleString()}円`,
                 0
             );
             } catch (error) {
+                clearGlobalRankingCandidate();
                 if (error instanceof StoragePersistenceError) {
                     addLog('保存に失敗したため、この結果は記録されません。', 'log-st');
                     setState('保存失敗');
@@ -5212,6 +5711,7 @@
             const scopeKey = currentScopeKey();
             const { machineKey, spec, totalSpins, rotation1k } = getRunConfig();
             const days = parseInt(document.getElementById('autoDays').value);
+            let finance = getBusinessSettingsFromDom();
             clearGlobalRankingCandidate();
             isRunning = true;
             shouldStop = false;
@@ -5224,7 +5724,7 @@
             hideFinalResult();
             clearLog();
             addLog(`【${spec.name}】${days}日分 自動稼働開始`);
-            addLog(`条件: 1k${rotation1k}回転 / ${totalSpins}回転 × ${days}日`);
+            addLog(`条件: 本人1人+打ち子${finance.workers}人 / 1k${rotation1k}回転 / ${totalSpins}回転 × ${days}日`);
             addLog('─'.repeat(30));
 
             const results = [];
@@ -5232,16 +5732,26 @@
                 if (shouldStop) break;
 
                 setStageMode('spin', 'AUTO', `${day}/${days}日`);
-                const result = simulateFastSession(machineKey, totalSpins, rotation1k);
+                const result = simulateBusinessDay(machineKey, totalSpins, rotation1k, finance);
+                if (result.endReason === '日当不足') {
+                    addLog(`${String(day).padStart(2, '0')}日目: 日当不足のため開始しません。`, 'log-st');
+                    break;
+                }
                 showFinalResult(result);
                 recordSessionOutcome(result, scopeKey, { refresh: false });
                 results.push(result);
 
+                finance = { ...finance, capital: result.capital };
+                document.getElementById('operatingCapital').value = String(result.capital);
+                updateManagementSummary();
+
                 const profitText = (result.finalProfit >= 0 ? '+' : '') + result.finalProfit.toLocaleString() + '円';
                 addLog(
-                    `${String(day).padStart(2, '0')}日目: ${profitText} / 初当り${result.hitCount}回 / ${result.finalBalls.toLocaleString()}発`,
-                    result.finalProfit >= 0 ? 'log-chain' : 'log-st'
+                    `${String(day).padStart(2, '0')}日目: 営業${formatSignedYen(result.operatingProfit)} / ${result.endReason} / 残資金${result.capital.toLocaleString()}円`,
+                    result.operatingProfit >= 0 ? 'log-chain' : 'log-st'
                 );
+
+                if (!result.completed) break;
 
                 await sleep(0);
             }
@@ -5249,7 +5759,7 @@
             const completedDays = results.length;
             const stopped = shouldStop && completedDays < days;
             if (completedDays > 0) {
-                const totalProfit = results.reduce((sum, result) => sum + result.finalProfit, 0);
+                const totalProfit = aggregateOperatingProfit(results);
                 const totalInvest = results.reduce((sum, result) => sum + result.totalInvestment, 0);
                 const totalPayout = results.reduce((sum, result) => sum + result.finalBalls, 0);
                 const totalHits = results.reduce((sum, result) => sum + result.hitCount, 0);
@@ -5310,6 +5820,12 @@
 
         document.getElementById('rotation1k').addEventListener('change', onScopeChange);
         document.getElementById('totalSpins').addEventListener('change', updateDeviationDisplay);
+        document.querySelectorAll('.management-settings input').forEach(input => {
+            input.addEventListener('change', () => {
+                updateManagementSummary();
+                updateDeviationDisplay();
+            });
+        });
         document.getElementById('globalRankingOpenBtn').addEventListener('click', () => openGlobalRanking(false));
         document.getElementById('globalRankingResultBtn').addEventListener('click', () => openGlobalRanking(true));
         document.getElementById('globalRankingCloseBtn').addEventListener('click', () => {
@@ -5335,6 +5851,9 @@
         });
 
         setMachineTheme(document.getElementById('machine').value);
+        const initialBusinessState = loadAllData()?.businessState;
+        if (initialBusinessState) document.getElementById('operatingCapital').value = String(initialBusinessState.capital);
+        updateManagementSummary();
         setStageMode('idle', 'READY', '待機中');
         updateReels(0);
     </script>
