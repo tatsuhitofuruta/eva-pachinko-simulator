@@ -3200,38 +3200,73 @@
             'pachinko_session_history',
             'pachinko_ranking_stats'
         ];
+        let dataCache = null;
+        let dataLoadError = null;
+
+        class StoragePersistenceError extends Error {
+            constructor(message, cause) {
+                super(message);
+                this.name = 'StoragePersistenceError';
+                this.cause = cause;
+            }
+        }
 
         function currentScopeKey() {
             return `${document.getElementById('machine').value}:${document.getElementById('rotation1k').value}`;
         }
 
         function loadAllData() {
-            const defaultData = { version: 2, scopes: {} };
-            const data = localStorage.getItem(DATA_KEY);
-            if (!data) return defaultData;
+            if (dataCache) return dataCache;
+            if (dataLoadError) return null;
+
+            let serialized;
+            try {
+                serialized = localStorage.getItem(DATA_KEY);
+            } catch (error) {
+                dataLoadError = new StoragePersistenceError('保存領域を読み込めません。', error);
+                return null;
+            }
+            if (!serialized) {
+                dataCache = { version: 3, scopes: {} };
+                return dataCache;
+            }
 
             try {
-                const parsed = JSON.parse(data);
-                if (!parsed || parsed.version !== 2 || typeof parsed.scopes !== 'object' || parsed.scopes === null) {
-                    return defaultData;
+                const parsed = JSON.parse(serialized);
+                if (!parsed || ![2, 3].includes(parsed.version) || typeof parsed.scopes !== 'object' || parsed.scopes === null) {
+                    throw new Error('unsupported data version');
                 }
-                let migrated = false;
+                const scopes = {};
                 Object.keys(parsed.scopes).forEach(scopeKey => {
-                    const result = normalizeScopeData(scopeKey, parsed.scopes[scopeKey]);
-                    parsed.scopes[scopeKey] = result.scope;
-                    migrated = migrated || result.migrated;
+                    const sourceScope = parsed.scopes[scopeKey];
+                    const expanded = parsed.version === 3 ? expandCompactScope(scopeKey, sourceScope) : sourceScope;
+                    scopes[scopeKey] = normalizeScopeData(scopeKey, expanded).scope;
                 });
-                if (migrated) {
-                    localStorage.setItem(DATA_KEY, JSON.stringify(parsed));
-                }
-                return parsed;
+                dataCache = { version: 3, scopes };
+                return dataCache;
             } catch (error) {
-                return defaultData;
+                // Do not replace unreadable bytes with an empty payload on a later save.
+                dataLoadError = new StoragePersistenceError('保存済みデータを読み込めません。', error);
+                return null;
             }
         }
 
         function saveAllData(data) {
-            localStorage.setItem(DATA_KEY, JSON.stringify(data));
+            if (dataLoadError) throw dataLoadError;
+            const nextCache = { version: 3, scopes: data.scopes };
+            const persisted = {
+                version: 3,
+                scopes: Object.fromEntries(Object.entries(nextCache.scopes).map(([scopeKey, scope]) => [
+                    scopeKey,
+                    compactScope(scope)
+                ]))
+            };
+            try {
+                localStorage.setItem(DATA_KEY, JSON.stringify(persisted));
+            } catch (error) {
+                throw new StoragePersistenceError('保存に失敗しました。', error);
+            }
+            dataCache = nextCache;
         }
 
         function defaultScope() {
@@ -3250,7 +3285,7 @@
         }
 
         function normalizeScopeData(scopeKey, scope) {
-            const normalized = scope && typeof scope === 'object' ? scope : defaultScope();
+            const normalized = scope && typeof scope === 'object' ? { ...scope } : defaultScope();
             const defaults = defaultScope();
             let migrated = false;
 
@@ -3284,45 +3319,73 @@
             return { scope: normalized, migrated };
         }
 
+        function expandCompactScope(scopeKey, scope) {
+            const compact = scope && typeof scope === 'object' ? scope : {};
+            const history = Array.isArray(compact.h) ? compact.h.map((tuple, index) => {
+                const [invest, payout, profit, spins, expected, analyticalExpected, deviation] = Array.isArray(tuple) ? tuple : [];
+                return {
+                    date: getVirtualDateString(index),
+                    day: index + 1,
+                    invest,
+                    payout,
+                    profit,
+                    spins,
+                    expected,
+                    analyticalExpected,
+                    deviation
+                };
+            }) : [];
+            return { stats: compact.s, history, ranking: compact.r };
+        }
+
+        function compactScope(scope) {
+            return {
+                s: scope.stats,
+                h: scope.history.map(session => [
+                    session.invest,
+                    session.payout,
+                    session.profit,
+                    session.spins,
+                    session.expected,
+                    session.analyticalExpected,
+                    session.deviation
+                ]),
+                r: scope.ranking
+            };
+        }
+
+        function cloneScope(scope) {
+            return {
+                stats: { ...scope.stats },
+                history: scope.history.map(session => ({ ...session })),
+                ranking: { ...scope.ranking }
+            };
+        }
+
         function loadScope(scopeKey = currentScopeKey()) {
             const data = loadAllData();
-            return data.scopes[scopeKey] || defaultScope();
+            return data?.scopes[scopeKey] || defaultScope();
         }
 
         function saveScope(scopeKey, scope) {
             const data = loadAllData();
-            data.scopes[scopeKey] = scope;
-            saveAllData(data);
+            if (!data) throw dataLoadError || new StoragePersistenceError('保存領域を読み込めません。');
+            saveAllData({
+                version: 3,
+                scopes: { ...data.scopes, [scopeKey]: cloneScope(scope) }
+            });
         }
 
         function loadCumulativeStats(scopeKey = currentScopeKey()) {
             return loadScope(scopeKey).stats;
         }
 
-        function saveCumulativeStats(stats, scopeKey = currentScopeKey()) {
-            const scope = loadScope(scopeKey);
-            scope.stats = stats;
-            saveScope(scopeKey, scope);
-        }
-
         function loadSessionHistory(scopeKey = currentScopeKey()) {
             return loadScope(scopeKey).history;
         }
 
-        function saveSessionHistory(history, scopeKey = currentScopeKey()) {
-            const scope = loadScope(scopeKey);
-            scope.history = history;
-            saveScope(scopeKey, scope);
-        }
-
         function loadRankingStats(scopeKey = currentScopeKey()) {
             return loadScope(scopeKey).ranking;
-        }
-
-        function saveRankingStats(stats, scopeKey = currentScopeKey()) {
-            const scope = loadScope(scopeKey);
-            scope.ranking = stats;
-            saveScope(scopeKey, scope);
         }
 
         function resetOldDataKeys() {
@@ -3349,6 +3412,14 @@
             moveToLatestSession();
             renderCalendar();
             renderProfitChart();
+        }
+
+        function refreshScopeDisplays() {
+            updateCumulativeDisplay();
+            updateRankingDisplay();
+            updateDeviationDisplay();
+            moveToLatestSession();
+            renderCalendar();
         }
 
         function getUniqueDaysCount() {
@@ -3390,27 +3461,10 @@
             }
         }
 
-        function addSessionResult(invest, payout, scopeKey = currentScopeKey(), result = null) {
-            // 累計収支更新
-            const stats = loadCumulativeStats(scopeKey);
-            stats.sessions++;
-            stats.invest += invest;
-            stats.payout += payout;
-            saveCumulativeStats(stats, scopeKey);
-
-            // セッション履歴にも追加
-            addSessionToHistory(invest, payout, scopeKey, result);
-            updateCumulativeDisplay();
-            // 最新セッションの月にカレンダーを移動
-            moveToLatestSession();
-            renderCalendar();
-            updateDeviationDisplay();
-        }
-
         function resetCumulativeStats() {
             const scopeKey = currentScopeKey();
             if (confirm(`${getScopeLabel(scopeKey)} の累計収支をリセットしますか？`)) {
-                const scope = loadScope(scopeKey);
+                const scope = cloneScope(loadScope(scopeKey));
                 scope.stats = defaultScope().stats;
                 saveScope(scopeKey, scope);
                 updateCumulativeDisplay();
@@ -3430,20 +3484,15 @@
             return `${year}-${month}-${day}`;
         }
 
-        function addSessionToHistory(invest, payout, scopeKey = currentScopeKey(), result = null) {
-            const history = loadSessionHistory(scopeKey);
-            // 仮想日付: 1回の稼働 = 1日として記録
-            // 開始日を2026-01-01として、セッション数に応じて日付を進める
-            const dayNumber = history.length; // 0から始まるので、これが経過日数
+        function createSessionHistoryEntry(invest, payout, scopeKey, result, dayNumber) {
             const dateStr = getVirtualDateString(dayNumber);
-
             const profit = Math.round((payout * 4) - invest);
             const [machineKey, rotationText] = scopeKey.split(':');
             const rotation1k = Number(rotationText) || Number(document.getElementById('rotation1k').value);
             const spins = Number(result?.plannedSpins) || Number(document.getElementById('totalSpins').value);
             const expected = expectedProfitYen(machineKey, rotation1k, spins);
             const deviation = Math.round(profit - expected);
-            history.push({
+            return {
                 date: dateStr,
                 day: dayNumber + 1, // 1日目、2日目...
                 invest: invest,
@@ -3453,8 +3502,7 @@
                 expected: expected,
                 analyticalExpected: expected,
                 deviation: deviation
-            });
-            saveSessionHistory(history, scopeKey);
+            };
         }
 
         function getHistoryByDate(dateStr) {
@@ -3470,12 +3518,9 @@
             const scopeKey = currentScopeKey();
             if (confirm(`${getScopeLabel(scopeKey)} の全データをリセットしますか？`)) {
                 const data = loadAllData();
-                data.scopes[scopeKey] = defaultScope();
-                saveAllData(data);
-                updateCumulativeDisplay();
-                updateRankingDisplay();
-                updateDeviationDisplay();
-                renderCalendar();
+                if (!data) throw dataLoadError || new StoragePersistenceError('保存領域を読み込めません。');
+                saveAllData({ version: 3, scopes: { ...data.scopes, [scopeKey]: defaultScope() } });
+                refreshScopeDisplays();
             }
         }
 
@@ -3860,8 +3905,7 @@
                 ? stats.worstDownswing.toLocaleString() + '円' : '---';
         }
 
-        function updateRankingWithResult(profit, maxChain, totalPayout, deviation = null, scopeKey = currentScopeKey()) {
-            const stats = loadRankingStats(scopeKey);
+        function applyRankingResult(stats, profit, maxChain, totalPayout, deviation = null) {
             let updated = false;
 
             // 最高収支（プラスの記録のみ）
@@ -3898,18 +3942,13 @@
                 updated = true;
             }
 
-            if (updated) {
-                saveRankingStats(stats, scopeKey);
-                updateRankingDisplay();
-            }
-
             return updated;
         }
 
         function resetRankingStats() {
             const scopeKey = currentScopeKey();
             if (confirm(`${getScopeLabel(scopeKey)} の個人記録をリセットしますか？`)) {
-                const scope = loadScope(scopeKey);
+                const scope = cloneScope(loadScope(scopeKey));
                 scope.ranking = defaultScope().ranking;
                 saveScope(scopeKey, scope);
                 updateRankingDisplay();
@@ -4048,10 +4087,32 @@
             finalResultPanel.style.display = 'block';
         }
 
-        function recordSessionOutcome(result, scopeKey = currentScopeKey()) {
-            addSessionResult(result.totalInvestment, result.finalBalls, scopeKey, result);
-            const expected = expectedProfitYen(result.machineKey, Number(scopeKey.split(':')[1]), result.plannedSpins);
-            updateRankingWithResult(result.finalProfit, result.maxChain, result.maxPayout, Math.round(result.finalProfit - expected), scopeKey);
+        function recordSessionOutcome(result, scopeKey = currentScopeKey(), { refresh = true } = {}) {
+            const data = loadAllData();
+            if (!data) throw dataLoadError || new StoragePersistenceError('保存領域を読み込めません。');
+
+            // Mutate only a detached scope. A quota failure must leave the cache and bytes identical.
+            const scope = cloneScope(data.scopes[scopeKey] || defaultScope());
+            const entry = createSessionHistoryEntry(
+                result.totalInvestment,
+                result.finalBalls,
+                scopeKey,
+                result,
+                scope.history.length
+            );
+            scope.stats.sessions += 1;
+            scope.stats.invest += result.totalInvestment;
+            scope.stats.payout += result.finalBalls;
+            scope.history.push(entry);
+            applyRankingResult(
+                scope.ranking,
+                result.finalProfit,
+                result.maxChain,
+                result.maxPayout,
+                entry.deviation
+            );
+            saveAllData({ version: 3, scopes: { ...data.scopes, [scopeKey]: scope } });
+            if (refresh) refreshScopeDisplays();
         }
 
         function logFinalResult(result) {
@@ -4440,6 +4501,7 @@
             shouldStop = false;
             setRunControls('single');
 
+            try {
             const { machineKey, spec, totalSpins, rotation1k, speedValue } = getRunConfig();
             clearGlobalRankingCandidate();
             const leaderboardRunPromise = requestLeaderboardRun(machineKey, totalSpins, rotation1k);
@@ -5125,9 +5187,20 @@
                 `${result.finalProfit >= 0 ? '+' : ''}${result.finalProfit.toLocaleString()}円`,
                 0
             );
-            isRunning = false;
-            shouldStop = false;
-            resetRunControls();
+            } catch (error) {
+                if (error instanceof StoragePersistenceError) {
+                    addLog('保存に失敗したため、この結果は記録されません。', 'log-st');
+                    setState('保存失敗');
+                } else {
+                    addLog('実行中にエラーが発生しました。結果は記録されていません。', 'log-st');
+                    setState('実行失敗');
+                    console.error(error);
+                }
+            } finally {
+                isRunning = false;
+                shouldStop = false;
+                resetRunControls();
+            }
         }
 
         async function startAutoSimulation() {
@@ -5143,6 +5216,7 @@
             isRunning = true;
             shouldStop = false;
             setRunControls('auto');
+            try {
             currentTotalSpins = totalSpins;
             lastRotations = 0;
             setMachineTheme(machineKey);
@@ -5159,9 +5233,9 @@
 
                 setStageMode('spin', 'AUTO', `${day}/${days}日`);
                 const result = simulateFastSession(machineKey, totalSpins, rotation1k);
-                results.push(result);
                 showFinalResult(result);
-                recordSessionOutcome(result, scopeKey);
+                recordSessionOutcome(result, scopeKey, { refresh: false });
+                results.push(result);
 
                 const profitText = (result.finalProfit >= 0 ? '+' : '') + result.finalProfit.toLocaleString() + '円';
                 addLog(
@@ -5199,9 +5273,27 @@
                 setState('終了');
             }
 
-            isRunning = false;
-            shouldStop = false;
-            resetRunControls();
+            } catch (error) {
+                shouldStop = true;
+                if (error instanceof StoragePersistenceError) {
+                    addLog('保存に失敗したため、失敗した日の結果は記録されません。', 'log-st');
+                    setState('保存失敗');
+                } else {
+                    addLog('実行中にエラーが発生しました。未記録の結果があります。', 'log-st');
+                    setState('実行失敗');
+                    console.error(error);
+                }
+            } finally {
+                try {
+                    refreshScopeDisplays();
+                } catch (error) {
+                    console.error(error);
+                } finally {
+                    isRunning = false;
+                    shouldStop = false;
+                    resetRunControls();
+                }
+            }
         }
 
         // 速度スライダー

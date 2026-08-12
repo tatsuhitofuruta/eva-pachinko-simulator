@@ -1,7 +1,8 @@
 # 機種×千円回転数別データ管理 設計書
 
 作成日: 2026-06-10
-ステータス: 設計確定・実装待ち（Codex に引き継ぎ）
+更新日: 2026-08-06
+ステータス: 実装済み
 
 ## 目的
 
@@ -15,7 +16,7 @@
 |------|------|
 | 「回転数」の意味 | 千円回転数（16〜20回転）。総回転数は分離しない |
 | 表示方式 | 選択中の機種・回転数セレクトに全パネルが追従して切り替わる |
-| 既存データ | リセットして仕切り直し。マイグレーションは行わない |
+| 既存データ | v2 を読み込み、次回の保存成功時に v3 へ変換する |
 | リセットボタンの単位 | 3 種すべて「現在スコープのみ」を対象にする |
 | 実行中のセレクト | シミュレーション中は機種・回転数セレクトを disabled |
 
@@ -26,16 +27,14 @@ localStorage キーは単一キーに集約する。
 ```js
 // localStorage キー: 'pachinko_data_v2'
 {
-  version: 2,
+  version: 3,
   scopes: {
     // スコープキー = `${machineKey}:${rotation1k}` 例 "eva15:18"
     "eva15:18": {
-      stats:   { sessions: 0, invest: 0, payout: 0 },
-      history: [
-        // machine フィールドは廃止（スコープキーに含意されるため）
-        { date: "2026-01-01", day: 1, invest: 0, payout: 0, profit: 0 }
-      ],
-      ranking: { bestProfit: null, worstProfit: null, maxChain: null, maxPayout: null }
+      // 短縮キーは保存時だけ使い、読み込み後は従来のオブジェクト契約に展開する。
+      s: { sessions: 0, invest: 0, payout: 0 },
+      h: [[invest, payout, profit, spins, expected, analyticalExpected, deviation]],
+      r: { bestProfit: null, worstProfit: null, maxChain: null, maxPayout: null }
     }
   }
 }
@@ -44,7 +43,10 @@ localStorage キーは単一キーに集約する。
 - スコープは初回書き込み時に遅延生成する（5機種×5回転数=25通りだが、遊んだ組み合わせのみ作られる）
 - 仮想日付（2026-01-01 起点、1 稼働=1 日）は **スコープごとに独立して進む**。
   `day = scope.history.length + 1` で採番する
-- 全体書き込みは毎回フルシリアライズで良い（90日自動実行でも数KB/スコープ）
+- 日付と day は履歴配列の添字から復元する。各スコープの 2026-01-01 起点の連番は維持する。
+- v2 の疎な履歴と完全な履歴を読み込める。補正と v3 変換は読み込み時に書き戻さず、次回の明示的な保存成功時だけ行う。
+- 読み込み済みデータはメモリキャッシュを使う。未対応版、破損データ、読み込みエラーは保存可能な空データとして扱わず、元の値を上書きしない。
+- セッションは対象スコープを複製し、stats、history、ranking をまとめて `setItem` 1 回で保存する。失敗時は保存値とキャッシュを変更しない。
 
 ### 旧キーの扱い
 
@@ -69,20 +71,17 @@ function currentScopeKey() {
     return `${document.getElementById('machine').value}:${document.getElementById('rotation1k').value}`;
 }
 
-function loadAllData()        // { version: 2, scopes: {} } を返す（壊れたJSONはデフォルトに）
+function loadAllData()        // 展開済み { version: 3, scopes: {} } をキャッシュして返す
 function saveAllData(data)
 
 function defaultScope()       // 上記構造の空スコープを返す
 function loadScope(scopeKey = currentScopeKey())   // scopes[scopeKey] ?? defaultScope()
 function saveScope(scopeKey, scope)                // scopes[scopeKey] に代入して saveAllData
 
-// 既存関数はスコープ対応ラッパーに（シグネチャに scopeKey を追加）
+// 表示用のラッパーはスコープ対応でキャッシュを読む
 loadCumulativeStats(scopeKey)  → loadScope(scopeKey).stats
-saveCumulativeStats(stats, scopeKey)
 loadSessionHistory(scopeKey)   → loadScope(scopeKey).history
-saveSessionHistory(history, scopeKey)
 loadRankingStats(scopeKey)     → loadScope(scopeKey).ranking
-saveRankingStats(stats, scopeKey)
 ```
 
 表示系（`updateCumulativeDisplay` / `updateRankingDisplay` / `renderCalendar` /
@@ -95,9 +94,9 @@ load 系がスコープ対応になれば引数なし呼び出しで「現在ス
 **開始時にスコープキーをスナップショット**して引数で引き回す。
 
 - `startSimulation()` / `startAutoSimulation()` 冒頭で `const scopeKey = currentScopeKey()`
-- `addSessionResult(invest, payout, scopeKey)` — 既存の machineKey 引数は廃止
-- `addSessionToHistory(invest, payout, scopeKey)` — 履歴エントリから machine を削除
-- `updateRankingWithResult(profit, maxChain, totalPayout, scopeKey)`
+- `recordSessionOutcome(result, scopeKey)` — 統計、履歴、ランキングを 1 回の保存で更新
+- 自動実行中は日別の結果・ログだけを更新し、累計・カレンダー・期待値偏差・ランキング・グラフの全件再計算は完了、停止、保存失敗時に 1 回だけ行う。
+- 保存失敗時はその日を追加せずに自動実行を停止する。単日・自動実行とも finally で実行状態と操作ボタンを復旧する。
 
 セレクト disabled 制御は実行状態の切り替え箇所（startBtn/autoBtn の is-stop 切替と
 同じ場所）で `machine` / `rotation1k` の disabled を同期する。
@@ -145,7 +144,7 @@ load 系がスコープ対応になれば引数なし呼び出しで「現在ス
 4. シミュレーション実行中（1日実行・自動実行とも）は機種・回転数セレクトが
    disabled になり、終了で解除される
 5. 実行完了時の書き込みが開始時点のスコープに入る
-6. リロード後もスコープ別データが保持され、旧 3 キーは localStorage から消えている
+6. リロード後もスコープ別データが保持され、36,525 セッションの v3 保存値は 5 MiB 未満である
 7. コンソールエラーなし。既存の演出・チャート描画が全機種で動作する
 
 ## 実装メモ
@@ -153,6 +152,4 @@ load 系がスコープ対応になれば引数なし呼び出しで「現在ス
 - index.html 単一ファイル構成。JS は `<script>` ブロック内（2000行台前後）
 - 表示パネルの DOM 構造・クラス名は変更しない（NERVコンソールデザインを維持）
 - カレンダーの `currentYear` / `currentMonth` グローバルは既存のまま流用可
-- エンジニアリング評価: perfectly-engineered（単一キー集約・遅延生成・
-  マイグレーション省略は要件「リセットして仕切り直し」に整合。version
-  フィールドのみ将来のスキーマ変更に備えた最小の保険として残す）
+- 保存形式は v3 の圧縮タプル、メモリ上では既存のオブジェクト形式を使う。
